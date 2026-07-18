@@ -5,13 +5,15 @@ cd /d "%~dp0"
 set "WORKSPACE=%~dp0"
 if "!WORKSPACE:~-1!"=="\" set "WORKSPACE=!WORKSPACE:~0,-1!"
 set "N8N_HOME=%LOCALAPPDATA%\AIJobAgent\n8n"
-set "N8N_DIR=!N8N_HOME!"
 set "LOGFILE=!WORKSPACE!\setup.log"
-set "N8N_BIN=!N8N_DIR!\node_modules\.bin\n8n.cmd"
+set "N8N_BIN=!N8N_HOME!\node_modules\.bin\n8n.cmd"
 
-echo [INFO] n8n Startup Script
-echo [INFO] Workspace : !WORKSPACE!
-echo [INFO] n8n Home  : !N8N_DIR!
+echo.
+echo [INFO] ========== n8n Startup Script ==========
+echo [INFO] Workspace: !WORKSPACE!
+echo [INFO] n8n Home : !N8N_HOME!
+echo [INFO] Log File : !LOGFILE!
+echo [INFO] ==========================================
 echo.
 
 if not exist "!N8N_DIR!" mkdir "!N8N_DIR!"
