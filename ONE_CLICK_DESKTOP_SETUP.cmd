@@ -1,244 +1,160 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 
 echo ================================================
-echo AI Job Agent - One Click Desktop Setup
+echo  AI Job Agent - One Click Desktop Setup
 echo ================================================
 echo.
 
 set "WORKSPACE=%~dp0"
-if "%WORKSPACE:~-1%"=="\" set "WORKSPACE=%WORKSPACE:~0,-1%"
-set "LOGFILE=%WORKSPACE%\setup.log"
+if "!WORKSPACE:~-1!"=="\" set "WORKSPACE=!WORKSPACE:~0,-1!"
+set "LOGFILE=!WORKSPACE!\setup.log"
 
-echo [%date% %time%] Setup started > "%LOGFILE%"
+echo [%date% %time%] Setup started > "!LOGFILE!"
+echo [INFO] Workspace: !WORKSPACE! >> "!LOGFILE!"
+echo [INFO] Workspace: !WORKSPACE!
 
-call :info "Workspace: %WORKSPACE%"
-
-call :ensure_dir "%WORKSPACE%\data"
-call :ensure_dir "%WORKSPACE%\output"
-call :ensure_dir "%WORKSPACE%\n8n"
-call :ensure_dir "%WORKSPACE%\logs"
-
-set "WINGET_AVAILABLE=0"
-where winget >nul 2>nul
-if not errorlevel 1 set "WINGET_AVAILABLE=1"
-
-call :refresh_path
-
-call :require_command node "OpenJS.NodeJS.LTS"
-if errorlevel 1 (
-  if "%WINGET_AVAILABLE%"=="1" (
-    call :install_if_missing node "OpenJS.NodeJS.LTS"
-    if errorlevel 1 goto :fail
-  ) else (
-    call :error "node was not found and winget is unavailable."
-    goto :fail
-  )
+rem --- Create required folders
+for %%D in (data output n8n logs) do (
+  if not exist "!WORKSPACE!\%%D" mkdir "!WORKSPACE!\%%D" 2>>"!LOGFILE!"
 )
 
-call :require_command npm "OpenJS.NodeJS.LTS"
-if errorlevel 1 (
-  if "%WINGET_AVAILABLE%"=="1" (
-    call :install_if_missing node "OpenJS.NodeJS.LTS"
-    if errorlevel 1 goto :fail
-  ) else (
-    call :error "npm was not found and winget is unavailable."
-    goto :fail
-  )
-)
-
-call :resolve_python_command
-if not defined PYTHON_CMD (
-  if "%WINGET_AVAILABLE%"=="1" (
-    call :install_if_missing python "Python.Python.3.12"
-    if errorlevel 1 goto :fail
-    call :refresh_path
-    call :resolve_python_command
-  ) else (
-    call :error "Python was not found and winget is unavailable."
-    goto :fail
-  )
-)
-
-if not defined PYTHON_CMD (
-  call :error "Python command not found after setup."
-  goto :fail
-)
-
-call :run_command "%PYTHON_CMD%" --version
-if errorlevel 1 goto :fail
-
-call :run_command node -v
-if errorlevel 1 goto :fail
-
-call :run_command npm -v
-if errorlevel 1 goto :fail
-
-if not exist "%WORKSPACE%\requirements-agent.txt" (
-  call :info "Creating requirements-agent.txt"
-  > "%WORKSPACE%\requirements-agent.txt" echo langgraph^>=0.2.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo openai^>=1.40.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo playwright^>=1.50.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo pandas^>=2.2.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo python-dotenv^>=1.0.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo beautifulsoup4^>=4.12.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo lxml^>=5.2.0
-  >> "%WORKSPACE%\requirements-agent.txt" echo requests^>=2.32.0
-)
-
-call :info "Installing Python dependencies"
-call :run_command "%PYTHON_CMD%" -m pip install --upgrade pip
-if errorlevel 1 goto :fail
-
-call :run_command "%PYTHON_CMD%" -m pip install -r "%WORKSPACE%\requirements-agent.txt"
-if errorlevel 1 goto :fail
-
-call :info "Downloading Playwright browser (Chromium)"
-call :run_command "%PYTHON_CMD%" -m playwright install chromium
-if errorlevel 1 goto :fail
-
-if not exist "%WORKSPACE%\output\AppliedJobs.csv" (
-  call :info "Creating output\AppliedJobs.csv"
-  > "%WORKSPACE%\output\AppliedJobs.csv" echo Date,Company,Role,Location,JobURL,Source,MatchScore,Status,Reason,ResumeVersion,CoverLetterVersion,FollowUpDate,Notes
-)
-
-if not exist "%WORKSPACE%\n8n\job-application-agent.workflow.json" (
-  call :warn "Workflow file missing: n8n\job-application-agent.workflow.json"
-  call :warn "You can still run n8n and import workflow later."
-)
-
-call :info "Installing n8n"
-call :run_command npm install --prefix "%WORKSPACE%\n8n" n8n@1.85.1 --omit=optional --no-audit --no-fund
-if errorlevel 1 goto :fail
-
-set "N8N_LOCAL_JS=%WORKSPACE%\n8n\node_modules\n8n\bin\n8n.js"
-set "N8N_LOCAL_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
-if not exist "%N8N_LOCAL_JS%" if not exist "%N8N_LOCAL_CMD%" (
-  call :error "n8n package did not produce a launcher."
-  goto :fail
-)
-
-call :info "Setting n8n environment for LAN access"
-set "N8N_HOST=0.0.0.0"
-set "N8N_PORT=5678"
-set "N8N_PROTOCOL=http"
-set "N8N_SECURE_COOKIE=false"
-set "N8N_BASIC_AUTH_ACTIVE=true"
-set "N8N_BASIC_AUTH_USER=admin"
-set "N8N_BASIC_AUTH_PASSWORD=ChangeThisNow123!"
-
-call :info "Starting n8n in a new window"
-if exist "%N8N_LOCAL_CMD%" (
-  start "n8n-server" "%N8N_LOCAL_CMD%" --host=%N8N_HOST% --port=%N8N_PORT%
-) else (
-  start "n8n-server" node "%N8N_LOCAL_JS%" --host=%N8N_HOST% --port=%N8N_PORT%
-)
-
-call :info "Setup completed successfully"
-echo.
-echo Setup complete.
-echo n8n URL on this desktop: http://localhost:5678
-echo n8n URL from laptop on same network: http://DESKTOP_IP:5678
-echo Username: admin
-echo Password: ChangeThisNow123!
-echo IMPORTANT: Change password immediately in this file before long-term use.
-echo.
-echo [%date% %time%] Setup completed successfully >> "%LOGFILE%"
-exit /b 0
-
-:install_if_missing
-set "CMD_NAME=%~1"
-set "WINGET_ID=%~2"
-where %CMD_NAME% >nul 2>nul
-if not errorlevel 1 (
-  call :info "%CMD_NAME% already installed"
-  exit /b 0
-)
-
-call :info "Installing %CMD_NAME% using winget (%WINGET_ID%)"
-winget install --id "%WINGET_ID%" --accept-source-agreements --accept-package-agreements --silent >> "%LOGFILE%" 2>&1
-if errorlevel 1 (
-  call :error "Failed to install %CMD_NAME%. Check setup.log"
-  exit /b 1
-)
-exit /b 0
-
-:require_command
-set "CMD_NAME=%~1"
-where %CMD_NAME% >nul 2>nul
-if not errorlevel 1 exit /b 0
-call :error "%CMD_NAME% not found. Install package: %~2"
-exit /b 1
-
-:resolve_python_command
+rem --- Detect Python (py launcher, python, python3, or full paths)
 set "PYTHON_CMD="
 where py >nul 2>nul
-if not errorlevel 1 (
-  set "PYTHON_CMD=py"
-  exit /b 0
+if not errorlevel 1 set "PYTHON_CMD=py"
+if not defined PYTHON_CMD (
+  where python >nul 2>nul
+  if not errorlevel 1 set "PYTHON_CMD=python"
 )
-where python >nul 2>nul
-if not errorlevel 1 (
-  set "PYTHON_CMD=python"
-  exit /b 0
+if not defined PYTHON_CMD (
+  where python3 >nul 2>nul
+  if not errorlevel 1 set "PYTHON_CMD=python3"
 )
-where python3 >nul 2>nul
-if not errorlevel 1 (
-  set "PYTHON_CMD=python3"
-  exit /b 0
-)
-exit /b 0
-
-:refresh_path
-set "PATH=%PATH%;%ProgramFiles%\nodejs;%ProgramFiles%\Python312;%ProgramFiles%\Python312\Scripts;%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts;%LOCALAPPDATA%\Programs\Python\Python311;%LOCALAPPDATA%\Programs\Python\Python311\Scripts;%LOCALAPPDATA%\Programs\Python\Python310;%LOCALAPPDATA%\Programs\Python\Python310\Scripts;%LOCALAPPDATA%\Programs\Python\Python39;%LOCALAPPDATA%\Programs\Python\Python39\Scripts;%LOCALAPPDATA%\Programs\Python\Python38;%LOCALAPPDATA%\Programs\Python\Python38\Scripts;%LOCALAPPDATA%\Programs\Python\Python37;%LOCALAPPDATA%\Programs\Python\Python37\Scripts;%APPDATA%\npm"
-if exist "%ProgramFiles%\Python311" set "PATH=%PATH%;%ProgramFiles%\Python311;%ProgramFiles%\Python311\Scripts"
-if exist "%ProgramFiles%\Python310" set "PATH=%PATH%;%ProgramFiles%\Python310;%ProgramFiles%\Python310\Scripts"
-if exist "%ProgramFiles%\Python39" set "PATH=%PATH%;%ProgramFiles%\Python39;%ProgramFiles%\Python39\Scripts"
-if exist "%ProgramFiles%\Python38" set "PATH=%PATH%;%ProgramFiles%\Python38;%ProgramFiles%\Python38\Scripts"
-if exist "%ProgramFiles%\Python37" set "PATH=%PATH%;%ProgramFiles%\Python37;%ProgramFiles%\Python37\Scripts"
-if exist "%ProgramFiles%\nodejs" set "PATH=%PATH%;%ProgramFiles%\nodejs"
-if exist "%APPDATA%\npm" set "PATH=%PATH%;%APPDATA%\npm"
-exit /b 0
-
-:ensure_dir
-if not exist "%~1" (
-  mkdir "%~1" >> "%LOGFILE%" 2>&1
-  if errorlevel 1 (
-    call :error "Failed to create directory: %~1"
-    exit /b 1
+if not defined PYTHON_CMD (
+  for %%P in (
+    "%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+    "%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+    "%LOCALAPPDATA%\Programs\Python\Python310\python.exe"
+    "%ProgramFiles%\Python312\python.exe"
+    "%ProgramFiles%\Python311\python.exe"
+  ) do (
+    if not defined PYTHON_CMD if exist %%P set "PYTHON_CMD=%%~P"
   )
 )
-exit /b 0
-
-:run_command
-set "RUN_CMD=%~1"
-shift
-call :info "Running: %RUN_CMD% %*"
-"%RUN_CMD%" %* >> "%LOGFILE%" 2>&1
-if errorlevel 1 (
-  call :error "Command failed: %RUN_CMD% %*"
-  exit /b 1
+if not defined PYTHON_CMD (
+  echo [ERROR] Python not found. Install from https://python.org and re-run.
+  echo [ERROR] Python not found >> "!LOGFILE!"
+  goto :fail
 )
-exit /b 0
+echo [INFO] Python: !PYTHON_CMD!
+echo [INFO] Python: !PYTHON_CMD! >> "!LOGFILE!"
 
-:info
-echo [INFO] %~1
-echo [INFO] %~1 >> "%LOGFILE%"
-exit /b 0
+rem --- Detect Node / npm
+where node >nul 2>nul
+if errorlevel 1 (
+  echo [ERROR] Node.js not found. Download from https://nodejs.org and re-run.
+  echo [ERROR] Node.js not found >> "!LOGFILE!"
+  goto :fail
+)
+where npm >nul 2>nul
+if errorlevel 1 (
+  echo [ERROR] npm not found. Install Node.js from https://nodejs.org and re-run.
+  echo [ERROR] npm not found >> "!LOGFILE!"
+  goto :fail
+)
 
-:warn
-echo [WARN] %~1
-echo [WARN] %~1 >> "%LOGFILE%"
-exit /b 0
+for /f "tokens=*" %%V in ('node -v') do ( echo [INFO] node %%V & echo [INFO] node %%V >> "!LOGFILE!" )
+for /f "tokens=*" %%V in ('npm -v') do ( echo [INFO] npm %%V & echo [INFO] npm %%V >> "!LOGFILE!" )
+for /f "tokens=*" %%V in ('!PYTHON_CMD! --version') do ( echo [INFO] %%V & echo [INFO] %%V >> "!LOGFILE!" )
 
-:error
-echo [ERROR] %~1
-echo [ERROR] %~1 >> "%LOGFILE%"
+rem --- Create requirements file if missing
+if not exist "!WORKSPACE!\requirements-agent.txt" (
+  echo [INFO] Creating requirements-agent.txt
+  >>>"!WORKSPACE!\requirements-agent.txt" echo langgraph>=0.2.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo openai>=1.40.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo playwright>=1.50.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo pandas>=2.2.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo python-dotenv>=1.0.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo beautifulsoup4>=4.12.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo lxml>=5.2.0
+  >>>"!WORKSPACE!\requirements-agent.txt" echo requests>=2.32.0
+)
+
+rem --- Upgrade pip
+echo [STEP] Upgrading pip...
+echo [STEP] Upgrading pip >> "!LOGFILE!"
+!PYTHON_CMD! -m pip install --upgrade pip >> "!LOGFILE!" 2>&1
+
+rem --- Install Python packages
+echo [STEP] Installing Python packages...
+echo [STEP] Installing Python packages >> "!LOGFILE!"
+!PYTHON_CMD! -m pip install -r "!WORKSPACE!\requirements-agent.txt" >> "!LOGFILE!" 2>&1
+if errorlevel 1 (
+  echo [ERROR] Python package install failed. Check setup.log
+  echo [ERROR] Python package install failed >> "!LOGFILE!"
+  goto :fail
+)
+echo [INFO] Python packages installed.
+echo [INFO] Python packages installed >> "!LOGFILE!"
+
+rem --- Playwright browser
+echo [STEP] Downloading Playwright Chromium browser...
+echo [STEP] Downloading Playwright Chromium >> "!LOGFILE!"
+!PYTHON_CMD! -m playwright install chromium >> "!LOGFILE!" 2>&1
+if errorlevel 1 ( echo [WARN] Playwright download failed - run manually: python -m playwright install chromium )
+
+rem --- Install n8n locally (no admin rights needed)
+echo [STEP] Installing n8n (local, no admin required)...
+echo [STEP] Installing n8n >> "!LOGFILE!"
+npm install --prefix "!WORKSPACE!\n8n" n8n --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
+if errorlevel 1 (
+  echo [ERROR] n8n install failed. Check setup.log
+  echo [ERROR] n8n install failed >> "!LOGFILE!"
+  goto :fail
+)
+echo [INFO] n8n installed.
+echo [INFO] n8n installed >> "!LOGFILE!"
+
+rem --- Init tracker CSV
+if not exist "!WORKSPACE!\output\AppliedJobs.csv" (
+  echo Date,Company,Role,Location,JobURL,Source,MatchScore,Status,Reason,ResumeVersion,CoverLetterVersion,FollowUpDate,Notes > "!WORKSPACE!\output\AppliedJobs.csv"
+  echo [INFO] Created AppliedJobs.csv
+)
+
+rem --- Start n8n
+echo [STEP] Starting n8n in a new window...
+echo [STEP] Starting n8n >> "!LOGFILE!"
+set "N8N_BIN=!WORKSPACE!\n8n\node_modules\.bin\n8n.cmd"
+if not exist "!N8N_BIN!" set "N8N_BIN=!WORKSPACE!\n8n\node_modules\n8n\bin\n8n"
+start "n8n - AI Job Agent" cmd /k "cd /d \"!WORKSPACE!\" && set N8N_HOST=0.0.0.0&& set N8N_PORT=5678&& set N8N_PROTOCOL=http&& set N8N_SECURE_COOKIE=false&& set N8N_BASIC_AUTH_ACTIVE=true&& set N8N_BASIC_AUTH_USER=admin&& set N8N_BASIC_AUTH_PASSWORD=ChangeThisNow123!&& \"!N8N_BIN!\""
+
+echo [%date% %time%] Setup completed successfully >> "!LOGFILE!"
+echo.
+echo ================================================
+echo  SETUP COMPLETE
+echo ================================================
+echo  n8n is starting in a new window.
+echo.
+echo  Desktop URL : http://localhost:5678
+echo  Laptop URL  : http://YOUR_DESKTOP_IP:5678
+echo.
+echo  Login    : admin
+echo  Password : ChangeThisNow123!
+echo.
+echo  Import workflow from:
+echo  n8n\job-application-agent.workflow.json
+echo ================================================
+pause
 exit /b 0
 
 :fail
 echo.
-echo Setup failed. Check "%LOGFILE%" for details.
-echo [%date% %time%] Setup failed >> "%LOGFILE%"
+echo ================================================
+echo  SETUP FAILED
+echo  Check setup.log in this folder for details.
+echo ================================================
+echo [%date% %time%] Setup failed >> "!LOGFILE!"
+pause
 exit /b 1
