@@ -1,0 +1,43 @@
+[18-07-2026 16:04:42.56] Setup started 
+[INFO] Workspace: c:\Users\shash\Videos\agents for job\agents-for-jobs 
+[INFO] Running: py --version 
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+[INFO] Running: node -v 
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+[INFO] Running: npm -v 
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+[INFO] Installing Python dependencies 
+[INFO] Running: py -m pip install --upgrade pip 
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+[INFO] Downloading Playwright browser (Chromium) 
+[INFO] Running: py -m playwright install chromium 
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+[INFO] Installing n8n 
+[INFO] Running: npm install -g n8n 
+'CMDLINE:' is not recognized as an internal or external command,
+operable program or batch file.
+'^' is not recognized as an internal or external command,
+operable program or batch file.
+[INFO] Setting n8n environment for LAN access 
+[INFO] Starting n8n in a new window 
+[INFO] Setup completed successfully 
+[18-07-2026 16:04:43.08] Setup completed successfully 
