@@ -20,3 +20,17 @@ __pycache__/
 # OS/editor noise
 .DS_Store
 Thumbs.db
+
+# Generated candidate artifacts and pipeline run output.
+# These contain personal data (resumes, cover letters, application records)
+# and must never be pushed. Keep the AppliedJobs.csv ledgers and the
+# candidate resume folder READMEs, which are part of the repo scaffolding.
+Profiles/
+output/*
+!output/AppliedJobs.csv
+!output/*/
+output/*/**
+!output/*/AppliedJobs.csv
+data/job_feeds/
+data/candidates/*/resume/*
+!data/candidates/*/resume/README.txt

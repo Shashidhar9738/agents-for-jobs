@@ -1,6 +1,0 @@
-Shashidhar Yadala
-Senior QA Automation Engineer
-6 years in test automation.
-- Selenium WebDriver and TestNG frameworks.
-- REST API regression with RestAssured.
-- Jenkins CI integration.
