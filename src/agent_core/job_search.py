@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
+from src.agent_core.ai_client import AIClient, AIClientError
+from src.agent_core.prompt_loader import PromptLoadError, collect_prompt_versions, load_prompt
+
 
 class JobSearchError(ValueError):
     """Raised when WF02 job search inputs are invalid."""
@@ -50,6 +53,15 @@ def run_job_search(
     normalized_jobs = [_score_and_route_job(job, candidate_profile, candidate_preferences, profile_pack) for job in loaded_jobs]
     deduped_jobs = _dedupe_jobs(normalized_jobs)
 
+    scoring_mode, prompt_versions, model_usage = _apply_ai_scoring(
+        repo_root=repo_root,
+        run_context=run_context,
+        jobs=deduped_jobs,
+        candidate_profile=candidate_profile,
+        candidate_preferences=candidate_preferences,
+    )
+    deduped_jobs = _dedupe_jobs(deduped_jobs)  # Re-sort: AI may have changed scores.
+
     base_output_dir = output_dir or repo_root / "output" / candidate_id / "wf02" / run_id
     base_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -74,6 +86,9 @@ def run_job_search(
         "review_count": sum(1 for job in deduped_jobs if job["decision"] == "Review"),
         "skip_count": sum(1 for job in deduped_jobs if job["decision"] == "Skip"),
         "portals": sorted({job["source"] for job in deduped_jobs}),
+        "scoring_mode": scoring_mode,
+        "prompt_versions": prompt_versions,
+        "model_usage": model_usage,
     }
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
@@ -87,6 +102,140 @@ def run_job_search(
         review_count=summary["review_count"],
         skip_count=summary["skip_count"],
     )
+
+
+def _apply_ai_scoring(
+    repo_root: Path,
+    run_context: Dict[str, Any],
+    jobs: List[Dict[str, Any]],
+    candidate_profile: Dict[str, Any],
+    candidate_preferences: Dict[str, Any],
+) -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
+    """Blend a semantic match score into deterministic scoring, in place.
+
+    Keyword scoring cannot tell that "SDET" and "QA Automation Engineer" are the
+    same job, so the model supplies a semantic view. Deterministic hard filters stay
+    authoritative: a job excluded by candidate rules is never revived here.
+    """
+    eligible = [job for job in jobs if not job.get("hard_filtered")]
+    if not eligible:
+        return "deterministic", {}, {}
+
+    try:
+        client = AIClient.from_run_context(run_context)
+    except AIClientError:
+        return "deterministic", {}, {}
+
+    if not client.available:
+        return "deterministic", {}, {}
+
+    try:
+        system_prompt = load_prompt(repo_root, "system")
+        matcher_prompt = load_prompt(repo_root, "job_matcher")
+    except PromptLoadError:
+        return "deterministic", {}, {}
+
+    # One call per run rather than per job keeps cost and latency bounded.
+    job_digest = [
+        {
+            "index": index,
+            "role_title": job.get("role_title", ""),
+            "company": job.get("company", ""),
+            "location": job.get("location", ""),
+            "work_mode": job.get("work_mode", ""),
+            "description": str(job.get("job_description", ""))[:1500],
+            "deterministic_score": job.get("match_score", 0),
+        }
+        for index, job in enumerate(eligible)
+    ]
+
+    user_prompt = "\n\n".join(
+        [
+            matcher_prompt.text,
+            "## Candidate Profile\n" + json.dumps(candidate_profile, indent=2),
+            "## Candidate Preferences\n" + json.dumps(candidate_preferences, indent=2),
+            "## Jobs To Score\n" + json.dumps(job_digest, indent=2),
+            "## Required Output\n"
+            "Return a JSON object with key 'scores' containing an array of objects, one per job, "
+            "each with: index (integer matching the input), semantic_score (integer 0-100 for how "
+            "well the candidate's verified experience fits the role), and fit_summary (one sentence). "
+            "Judge only on the supplied profile and preferences; do not assume unstated experience.",
+        ]
+    )
+
+    try:
+        response = client.complete_json(
+            system_prompt=system_prompt.text,
+            user_prompt=user_prompt,
+            purpose="wf02_job_matching",
+        )
+    except AIClientError:
+        return "deterministic", {}, {}
+
+    if not response.data:
+        return "deterministic", {}, {}
+
+    scores = response.data.get("scores")
+    if not isinstance(scores, list):
+        return "deterministic", {}, {}
+
+    minimum_match = int(candidate_preferences.get("minimum_match", 0) or 0)
+    applied_any = False
+    for entry in scores:
+        if not isinstance(entry, dict):
+            continue
+        index = entry.get("index")
+        if not isinstance(index, int) or not 0 <= index < len(eligible):
+            continue
+        semantic_score = entry.get("semantic_score")
+        if not isinstance(semantic_score, (int, float)):
+            continue
+
+        job = eligible[index]
+        semantic_score = max(0, min(100, int(semantic_score)))
+        deterministic_score = int(job.get("match_score", 0))
+        # Weighted toward the deterministic score, which encodes explicit candidate rules.
+        blended = int(round(deterministic_score * 0.6 + semantic_score * 0.4))
+
+        job["deterministic_score"] = deterministic_score
+        job["semantic_score"] = semantic_score
+        job["match_score"] = blended
+        fit_summary = str(entry.get("fit_summary", "")).strip()
+        if fit_summary:
+            job["fit_summary"] = fit_summary
+        _reroute_after_blend(job, blended, minimum_match)
+        applied_any = True
+
+    if not applied_any:
+        return "deterministic", {}, {}
+
+    prompt_versions = collect_prompt_versions(system_prompt, matcher_prompt)
+    return "ai_blended", prompt_versions, client.usage.as_metadata()
+
+
+def _reroute_after_blend(job: Dict[str, Any], blended_score: int, minimum_match: int) -> None:
+    """Re-apply routing thresholds to a blended score.
+
+    Jobs missing required keywords stay capped at Review - the model may not
+    promote them to Apply, since required keywords are an explicit candidate rule.
+    """
+    if job.get("missing_required_keywords"):
+        job["decision"] = "Review" if blended_score >= minimum_match else "Skip"
+        job["reason"] = (
+            f"Blended score {blended_score} with missing required keywords: "
+            f"{', '.join(job['missing_required_keywords'][:3])}"
+        )
+        return
+
+    if blended_score >= minimum_match:
+        job["decision"] = "Apply"
+        job["reason"] = f"Blended keyword and semantic score {blended_score} meets threshold {minimum_match}"
+    elif blended_score >= max(minimum_match - 10, 0):
+        job["decision"] = "Review"
+        job["reason"] = f"Blended score {blended_score} is borderline against threshold {minimum_match}"
+    else:
+        job["decision"] = "Skip"
+        job["reason"] = f"Blended score {blended_score} is below threshold {minimum_match}"
 
 
 def _as_dict(value: Any, field_name: str) -> Dict[str, Any]:
@@ -271,6 +420,7 @@ def _score_and_route_job(
             fit_summary="Job contains excluded keywords from candidate preferences.",
             matched_keywords=[],
             missing_required_keywords=[],
+            hard_filtered=True,
         )
 
     if allowed_platforms and source.lower() not in allowed_platforms:
@@ -282,6 +432,7 @@ def _score_and_route_job(
             fit_summary="Portal does not match the candidate's allowed platforms.",
             matched_keywords=[],
             missing_required_keywords=[],
+            hard_filtered=True,
         )
 
     title_score = _bounded_ratio_score(target_roles, searchable_text, 25)
@@ -454,6 +605,7 @@ def _decorate_job(
     fit_summary: str,
     matched_keywords: List[str],
     missing_required_keywords: List[str],
+    hard_filtered: bool = False,
 ) -> Dict[str, Any]:
     decorated = dict(job)
     decorated.update(
@@ -464,6 +616,9 @@ def _decorate_job(
             "fit_summary": fit_summary,
             "matched_keywords": sorted(set(matched_keywords)),
             "missing_required_keywords": sorted(set(missing_required_keywords)),
+            # Hard filters encode explicit candidate rules (exclusion keywords,
+            # disabled portals). The model is never allowed to reverse them.
+            "hard_filtered": hard_filtered,
         }
     )
     return decorated

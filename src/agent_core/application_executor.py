@@ -27,6 +27,7 @@ def execute_application(
     run_context: Dict[str, Any],
     job_artifact_dir: Path,
     output_dir: Path | None = None,
+    provenance: Dict[str, Any] | None = None,
 ) -> ApplicationExecutionResult:
     candidate_profile = _require_dict(run_context.get("candidate_profile"), "candidate_profile")
     candidate_preferences = _require_dict(run_context.get("candidate_preferences"), "candidate_preferences")
@@ -67,6 +68,9 @@ def execute_application(
         "cover_letter_used": str(cover_letter_pdf_path),
         "answers": _build_application_answers(candidate_profile, resume_json),
         "next_action": _next_action_for_status(status),
+        "errors": [],
+        "prompt_versions": (provenance or {}).get("prompt_versions", {}),
+        "model_usage": (provenance or {}).get("model_usage", {}),
     }
     application_json_path.write_text(json.dumps(application_payload, indent=2), encoding="utf-8")
     _write_screenshot_summary(screenshot_path, application_payload)

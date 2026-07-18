@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -9,6 +10,12 @@ from docx import Document
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
+
+from src.agent_core.ai_client import AIClient, AIClientError
+from src.agent_core.prompt_loader import PromptLoadError, collect_prompt_versions, load_prompt
+
+MIN_WORDS = 220
+MAX_WORDS = 320
 
 
 class CoverLetterGenerationError(ValueError):
@@ -21,6 +28,9 @@ class CoverLetterGenerationResult:
     cover_letter_text_path: Path
     cover_letter_docx_path: Path
     cover_letter_pdf_path: Path
+    generation_mode: str = "deterministic"
+    prompt_versions: Dict[str, Any] = field(default_factory=dict)
+    model_usage: Dict[str, Any] = field(default_factory=dict)
 
 
 def generate_cover_letter_bundle(
@@ -50,6 +60,23 @@ def generate_cover_letter_bundle(
     cover_letter_text = _build_cover_letter(candidate_profile, metadata, resume_json, jd_text)
     _validate_cover_letter(cover_letter_text, candidate_profile)
 
+    # Deterministic letter above is the guaranteed-valid baseline; the model only
+    # replaces it if its output also passes every validation rule.
+    generation_mode = "deterministic"
+    prompt_versions: Dict[str, Any] = {}
+    model_usage: Dict[str, Any] = {}
+
+    ai_outcome = _apply_ai_cover_letter(
+        repo_root=repo_root,
+        run_context=run_context,
+        candidate_profile=candidate_profile,
+        metadata=metadata,
+        resume_json=resume_json,
+        jd_text=jd_text,
+    )
+    if ai_outcome is not None:
+        cover_letter_text, generation_mode, prompt_versions, model_usage = ai_outcome
+
     destination_dir = output_dir or job_artifact_dir
     destination_dir.mkdir(parents=True, exist_ok=True)
     text_path = destination_dir / "CoverLetter.txt"
@@ -65,7 +92,114 @@ def generate_cover_letter_bundle(
         cover_letter_text_path=text_path,
         cover_letter_docx_path=docx_path,
         cover_letter_pdf_path=pdf_path,
+        generation_mode=generation_mode,
+        prompt_versions=prompt_versions,
+        model_usage=model_usage,
     )
+
+
+def _apply_ai_cover_letter(
+    repo_root: Path,
+    run_context: Dict[str, Any],
+    candidate_profile: Dict[str, Any],
+    metadata: Dict[str, Any],
+    resume_json: Dict[str, Any],
+    jd_text: str,
+) -> tuple[str, str, Dict[str, Any], Dict[str, Any]] | None:
+    """Generate the letter with the configured model.
+
+    Returns None whenever the model is unavailable, fails, or produces a letter
+    that breaks the word-count or no-fabrication rules.
+    """
+    try:
+        client = AIClient.from_run_context(run_context)
+    except AIClientError:
+        return None
+
+    if not client.available:
+        return None
+
+    try:
+        system_prompt = load_prompt(repo_root, "system")
+        letter_prompt = load_prompt(repo_root, "cover_letter")
+    except PromptLoadError:
+        return None
+
+    user_prompt = "\n\n".join(
+        [
+            letter_prompt.text,
+            "## Job Description\n" + jd_text,
+            "## Target Role Metadata\n" + json.dumps(
+                {
+                    "company": metadata.get("company", ""),
+                    "role_title": metadata.get("role_title", ""),
+                    "location": metadata.get("location", ""),
+                    "source": metadata.get("source", ""),
+                },
+                indent=2,
+            ),
+            "## Candidate Profile (verified facts - do not exceed these)\n"
+            + json.dumps(candidate_profile, indent=2),
+            "## Tailored Resume Summary\n" + json.dumps(
+                {
+                    key: resume_json.get(key)
+                    for key in (
+                        "updated_professional_summary",
+                        "updated_skills_order",
+                        "match_keywords_found",
+                    )
+                },
+                indent=2,
+            ),
+            "## Required Output\n"
+            f"Return a JSON object with a single key 'cover_letter_text' containing the full letter "
+            f"as a string. The letter must be between {MIN_WORDS} and {MAX_WORDS} words, must open with "
+            f"'Dear Hiring Team,', must close with the candidate's exact name "
+            f"'{candidate_profile.get('name', '')}', and must contain no percentages, invented metrics, "
+            f"employers, dates, or certifications absent from the candidate profile and resume summary.",
+        ]
+    )
+
+    try:
+        response = client.complete_json(
+            system_prompt=system_prompt.text,
+            user_prompt=user_prompt,
+            purpose="wf04_cover_letter",
+        )
+    except AIClientError:
+        return None
+
+    if not response.data:
+        return None
+
+    letter_text = str(response.data.get("cover_letter_text", "")).strip()
+    if not letter_text:
+        return None
+
+    if not _is_letter_grounded(letter_text, candidate_profile, resume_json, jd_text):
+        return None
+
+    try:
+        _validate_cover_letter(letter_text, candidate_profile)
+    except CoverLetterGenerationError:
+        return None
+
+    prompt_versions = collect_prompt_versions(system_prompt, letter_prompt)
+    return letter_text, "ai", prompt_versions, client.usage.as_metadata()
+
+
+def _is_letter_grounded(
+    letter_text: str,
+    candidate_profile: Dict[str, Any],
+    resume_json: Dict[str, Any],
+    jd_text: str,
+) -> bool:
+    """Reject letters introducing numbers absent from the verified source material."""
+    source_text = " ".join(
+        [json.dumps(candidate_profile), json.dumps(resume_json), jd_text]
+    )
+    source_numbers = set(re.findall(r"\d+", source_text))
+    return all(number in source_numbers for number in re.findall(r"\d+", letter_text))
 
 
 def _build_cover_letter(
@@ -108,7 +242,7 @@ def _build_cover_letter(
     ]
 
     text = "\n\n".join(paragraphs)
-    return _fit_word_window(text, 220, 320, candidate_profile, metadata, resume_json)
+    return _fit_word_window(text, MIN_WORDS, MAX_WORDS, candidate_profile, metadata, resume_json)
 
 
 def _fit_word_window(
@@ -150,8 +284,10 @@ def _fit_word_window(
 
 def _validate_cover_letter(text: str, candidate_profile: Dict[str, Any]) -> None:
     word_count = len(text.split())
-    if word_count < 220 or word_count > 320:
-        raise CoverLetterGenerationError("Generated cover letter does not satisfy the 220-320 word constraint")
+    if word_count < MIN_WORDS or word_count > MAX_WORDS:
+        raise CoverLetterGenerationError(
+            f"Generated cover letter does not satisfy the {MIN_WORDS}-{MAX_WORDS} word constraint"
+        )
     if "%" in text:
         raise CoverLetterGenerationError("Generated cover letter contains unsupported numeric claims")
     candidate_name = str(candidate_profile.get("name", "")).strip()
