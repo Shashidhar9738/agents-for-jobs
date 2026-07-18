@@ -66,14 +66,14 @@ for /f "tokens=*" %%V in ('npm -v') do echo [INFO] npm %%V
 rem --- Create requirements file
 if not exist "!WORKSPACE!\requirements-agent.txt" (
   echo [INFO] Creating requirements-agent.txt
-  echo langgraph>=0.2.0 > "!WORKSPACE!\requirements-agent.txt"
-  echo openai>=1.40.0 >> "!WORKSPACE!\requirements-agent.txt"
-  echo playwright>=1.50.0 >> "!WORKSPACE!\requirements-agent.txt"
-  echo pandas>=2.2.0 >> "!WORKSPACE!\requirements-agent.txt"
-  echo python-dotenv>=1.0.0 >> "!WORKSPACE!\requirements-agent.txt"
-  echo beautifulsoup4>=4.12.0 >> "!WORKSPACE!\requirements-agent.txt"
-  echo lxml>=5.2.0 >> "!WORKSPACE!\requirements-agent.txt"
-  echo requests>=2.32.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo langgraph^>=0.2.0 > "!WORKSPACE!\requirements-agent.txt"
+  echo openai^>=1.40.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo playwright^>=1.50.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo pandas^>=2.2.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo python-dotenv^>=1.0.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo beautifulsoup4^>=4.12.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo lxml^>=5.2.0 >> "!WORKSPACE!\requirements-agent.txt"
+  echo requests^>=2.32.0 >> "!WORKSPACE!\requirements-agent.txt"
 )
 
 rem --- Upgrade pip
@@ -97,7 +97,24 @@ if errorlevel 1 echo [WARN] Playwright download failed - run manually: py -m pla
 
 rem --- Install n8n locally
 echo [STEP] Installing n8n locally ^(no admin needed^)...
-npm install --prefix "!WORKSPACE!\n8n" n8n --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
+if not exist "!WORKSPACE!\n8n\package.json" (
+  pushd "!WORKSPACE!\n8n"
+  npm init -y >> "!LOGFILE!" 2>&1
+  if errorlevel 1 (
+    popd
+    echo [ERROR] n8n bootstrap failed. Check setup.log
+    goto :fail
+  )
+  popd
+)
+pushd "!WORKSPACE!\n8n"
+npm install n8n --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
+set "NPM_EXIT=!ERRORLEVEL!"
+popd
+if not "!NPM_EXIT!"=="0" (
+  echo [ERROR] n8n install failed. Check setup.log
+  goto :fail
+)
 if errorlevel 1 (
   echo [ERROR] n8n install failed. Check setup.log
   goto :fail
@@ -114,7 +131,11 @@ echo.
 echo [STEP] Starting n8n...
 set "N8N_BIN=!WORKSPACE!\n8n\node_modules\.bin\n8n.cmd"
 if not exist "!N8N_BIN!" set "N8N_BIN=!WORKSPACE!\n8n\node_modules\n8n\bin\n8n"
-start "n8n - AI Job Agent" cmd /k "set N8N_HOST=0.0.0.0 && set N8N_PORT=5678 && set N8N_SECURE_COOKIE=false && set N8N_BASIC_AUTH_ACTIVE=true && set N8N_BASIC_AUTH_USER=admin && set N8N_BASIC_AUTH_PASSWORD=ChangeThisNow123! && "!N8N_BIN!""
+if not exist "!N8N_BIN!" (
+  echo [ERROR] n8n launcher not found. Check setup.log
+  goto :fail
+)
+start "n8n - AI Job Agent" cmd /k "set N8N_HOST=0.0.0.0 && set N8N_PORT=5678 && set N8N_SECURE_COOKIE=false && set N8N_BASIC_AUTH_ACTIVE=true && set N8N_BASIC_AUTH_USER=admin && set N8N_BASIC_AUTH_PASSWORD=ChangeThisNow123! && call ""!N8N_BIN!"""
 
 echo [%date% %time%] Setup completed >> "!LOGFILE!"
 echo.
