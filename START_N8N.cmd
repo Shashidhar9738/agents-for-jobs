@@ -7,6 +7,7 @@ if "!WORKSPACE:~-1!"=="\" set "WORKSPACE=!WORKSPACE:~0,-1!"
 set "N8N_HOME=%LOCALAPPDATA%\AIJobAgent\n8n"
 set "N8N_DIR=!N8N_HOME!"
 set "LOGFILE=!WORKSPACE!\setup.log"
+set "N8N_BIN=!N8N_DIR!\node_modules\.bin\n8n.cmd"
 
 if not exist "!N8N_DIR!" mkdir "!N8N_DIR!"
 
@@ -33,21 +34,49 @@ if not exist "!N8N_DIR!\package.json" (
   popd
 )
 
-if not exist "!N8N_DIR!\node_modules\.bin\n8n.cmd" (
+set "NEEDS_REINSTALL=0"
+if not exist "!N8N_BIN!" set "NEEDS_REINSTALL=1"
+
+if "!NEEDS_REINSTALL!"=="0" (
+  pushd "!N8N_DIR!"
+  npm ls n8n --depth=0 >nul 2>&1
+  set "NPM_LS_EXIT=!ERRORLEVEL!"
+  popd
+  if not "!NPM_LS_EXIT!"=="0" set "NEEDS_REINSTALL=1"
+)
+
+if "!NEEDS_REINSTALL!"=="1" (
+  echo [WARN] Incomplete or broken n8n install detected. Reinstalling cleanly...
+  echo [WARN] Incomplete or broken n8n install detected. Reinstalling cleanly... >> "!LOGFILE!"
+
+  if exist "!N8N_DIR!\node_modules" rmdir /s /q "!N8N_DIR!\node_modules"
+  if exist "!N8N_DIR!\package-lock.json" del /f /q "!N8N_DIR!\package-lock.json"
+
+  if not exist "!N8N_DIR!\package.json" (
+    pushd "!N8N_DIR!"
+    npm init -y >> "!LOGFILE!" 2>&1
+    set "NPM_INIT_EXIT=!ERRORLEVEL!"
+    popd
+    if not "!NPM_INIT_EXIT!"=="0" (
+      echo [ERROR] Failed to initialize package.json. Check setup.log.
+      exit /b 1
+    )
+  )
+
   echo [INFO] Installing n8n in !N8N_DIR!. This may take a few minutes.
   pushd "!N8N_DIR!"
   npm install n8n --legacy-peer-deps --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
-  set "NPM_EXIT=!ERRORLEVEL!"
+  set "NPM_INSTALL_EXIT=!ERRORLEVEL!"
   popd
-  if not "!NPM_EXIT!"=="0" (
+
+  if not "!NPM_INSTALL_EXIT!"=="0" (
     echo [ERROR] n8n install failed. Check setup.log.
     exit /b 1
   )
 )
 
-set "N8N_BIN=!N8N_DIR!\node_modules\.bin\n8n.cmd"
 if not exist "!N8N_BIN!" (
-  echo [ERROR] n8n launcher not found after install. Check setup.log.
+  echo [ERROR] n8n launcher not found after reinstall. Check setup.log.
   exit /b 1
 )
 

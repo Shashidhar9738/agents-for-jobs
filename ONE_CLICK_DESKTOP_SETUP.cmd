@@ -99,6 +99,7 @@ if errorlevel 1 echo [WARN] Playwright download failed - run manually: py -m pla
 
 rem --- Install n8n in user profile (outside repository)
 echo [STEP] Installing n8n in user profile ^(no admin needed^)...
+set "N8N_BIN=!N8N_HOME!\node_modules\.bin\n8n.cmd"
 if not exist "!N8N_HOME!\package.json" (
   pushd "!N8N_HOME!"
   npm init -y >> "!LOGFILE!" 2>&1
@@ -109,16 +110,37 @@ if not exist "!N8N_HOME!\package.json" (
   )
   popd
 )
+
+set "NEEDS_REINSTALL=0"
+if not exist "!N8N_BIN!" set "NEEDS_REINSTALL=1"
+
+if "!NEEDS_REINSTALL!"=="0" (
+  pushd "!N8N_HOME!"
+  npm ls n8n --depth=0 >nul 2>&1
+  set "NPM_LS_EXIT=!ERRORLEVEL!"
+  popd
+  if not "!NPM_LS_EXIT!"=="0" set "NEEDS_REINSTALL=1"
+)
+
+if "!NEEDS_REINSTALL!"=="1" (
+  echo [WARN] Incomplete or broken n8n install detected. Reinstalling...
+  echo [WARN] Incomplete or broken n8n install detected. Reinstalling... >> "!LOGFILE!"
+  if exist "!N8N_HOME!\node_modules" rmdir /s /q "!N8N_HOME!\node_modules"
+  if exist "!N8N_HOME!\package-lock.json" del /f /q "!N8N_HOME!\package-lock.json"
+)
+
 pushd "!N8N_HOME!"
 npm install n8n --legacy-peer-deps --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
 set "NPM_EXIT=!ERRORLEVEL!"
 popd
+
 if not "!NPM_EXIT!"=="0" (
   echo [ERROR] n8n install failed. Check setup.log
   goto :fail
 )
-if errorlevel 1 (
-  echo [ERROR] n8n install failed. Check setup.log
+
+if not exist "!N8N_BIN!" (
+  echo [ERROR] n8n launcher not found after install. Check setup.log
   goto :fail
 )
 echo [INFO] n8n installed.
