@@ -2,6 +2,7 @@
 setup.log
 !LOGFILE!
 logs/
+.env
 
 # n8n runtime artifacts
 n8n/node_modules/

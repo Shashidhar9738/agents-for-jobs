@@ -2,10 +2,10 @@
 
 ## Step 1: Access n8n Dashboard
 
-1. Open browser: **http://localhost:5678**
+1. Open browser: **http://192.168.29.164:5678/**
 2. Login with:
-   - Email: `admin`
-   - Password: `ChangeThisNow123!`
+   - Email: `Shashi.shashi727@gmail.com`
+   - Password: `Aishu@@9738082343`
 
 ## Step 2: Set Up Required Credentials
 

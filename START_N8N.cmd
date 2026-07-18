@@ -119,9 +119,10 @@ if not exist "!N8N_BIN!" (
 
 echo.
 echo [INFO] Starting n8n...
+echo [INFO] URL    : http://192.168.29.164:5678/
 echo [INFO] URL    : http://localhost:5678
-echo [INFO] User   : admin
-echo [INFO] Pass   : ChangeThisNow123!
+echo [INFO] User   : Shashi.shashi727@gmail.com
+echo [INFO] Pass   : Aishu@@9738082343
 echo [INFO] Close this window to stop n8n
 echo.
 
@@ -130,8 +131,10 @@ set "N8N_HOST=0.0.0.0"
 set "N8N_PORT=5678"
 set "N8N_SECURE_COOKIE=false"
 set "N8N_BASIC_AUTH_ACTIVE=true"
-set "N8N_BASIC_AUTH_USER=admin"
-set "N8N_BASIC_AUTH_PASSWORD=ChangeThisNow123!"
+set "N8N_EDITOR_BASE_URL=http://192.168.29.164:5678/"
+set "WEBHOOK_URL=http://192.168.29.164:5678/"
+set "N8N_BASIC_AUTH_USER=Shashi.shashi727@gmail.com"
+set "N8N_BASIC_AUTH_PASSWORD=Aishu@@9738082343"
 
 call "!N8N_BIN!"
 pause

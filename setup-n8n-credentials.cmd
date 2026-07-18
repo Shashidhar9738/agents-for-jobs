@@ -13,8 +13,8 @@ echo [INFO] Checking if n8n is running...
 timeout /t 2 /nobreak
 
 set N8N_URL=http://localhost:5678
-set N8N_USER=admin
-set N8N_PASS=ChangeThisNow123!
+set N8N_USER=Shashi.shashi727@gmail.com
+set N8N_PASS=Aishu@@9738082343
 
 REM Step 1: Get OpenAI API Key
 echo.
@@ -62,8 +62,8 @@ echo ============================
         echo GMAIL_CLIENT_SECRET=%GMAIL_CLIENT_SECRET%
         echo GMAIL_REFRESH_TOKEN=%GMAIL_REFRESH_TOKEN%
     )
-    echo N8N_USER=admin
-    echo N8N_PASSWORD=ChangeThisNow123!
+    echo N8N_USER=Shashi.shashi727@gmail.com
+    echo N8N_PASSWORD=Aishu@@9738082343
     echo N8N_HOST=0.0.0.0
     echo N8N_PORT=5678
 ) > .env
@@ -81,7 +81,7 @@ start http://localhost:5678
 
 echo.
 echo [INFO] Next steps:
-echo 1. Login to n8n: admin / ChangeThisNow123!
+echo 1. Login to n8n: Shashi.shashi727@gmail.com / Aishu@@9738082343
 echo 2. Go to Credentials in the sidebar
 echo 3. Create credentials:
 echo    - OpenAI API
