@@ -62,34 +62,27 @@
     },
     {
       "id": "orch-wf00",
-      "name": "WF00 Resume ingestion",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF00",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
         480,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf00",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf00-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -99,34 +92,27 @@
     },
     {
       "id": "orch-wf01",
-      "name": "WF01 Configuration loader",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF01",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        700,
+        680,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf01",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf01-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -136,34 +122,27 @@
     },
     {
       "id": "orch-wf02",
-      "name": "WF02 Job search and scoring",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF02",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        920,
+        880,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf02",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf02-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -173,34 +152,27 @@
     },
     {
       "id": "orch-wf03",
-      "name": "WF03 Resume generator",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF03",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        1140,
+        1080,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf03",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf03-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -210,34 +182,27 @@
     },
     {
       "id": "orch-wf04",
-      "name": "WF04 Cover letter generator",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF04",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        1360,
+        1280,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf04",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf04-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -247,34 +212,27 @@
     },
     {
       "id": "orch-wf05",
-      "name": "WF05 Application executor",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF05",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        1580,
+        1480,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf05",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf05-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -284,34 +242,27 @@
     },
     {
       "id": "orch-wf06",
-      "name": "WF06 Notifications",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF06",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        1800,
+        1680,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf06",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf06-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -321,34 +272,27 @@
     },
     {
       "id": "orch-wf07",
-      "name": "WF07 Interview preparation",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF07",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        2020,
+        1880,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf07",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf07-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
@@ -358,40 +302,46 @@
     },
     {
       "id": "orch-wf08",
-      "name": "WF08 Dashboard aggregation",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "name": "Run WF08",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
       "position": [
-        2240,
+        2080,
         0
       ],
       "parameters": {
-        "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf08",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-API-Key",
-              "value": "${JOB_AGENT_API_TOKEN}"
-            }
-          ]
+        "workflowId": {
+          "__rl": true,
+          "value": "<wf08-id>",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate": "={{ $('Set Candidate').first().json.candidate }}"
           }
+        },
+        "options": {
+          "waitForSubWorkflow": true
         }
       },
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000,
       "onError": "continueRegularOutput"
+    },
+    {
+      "id": "orch-summary",
+      "name": "Run Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2280,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\nconst stages = ['wf00','wf01','wf02','wf03','wf04','wf05','wf06','wf07','wf08'];\nconst summary = [];\n\nfor (const stage of stages) {\n  let entry = { stage, ok: false, detail: 'not run' };\n  try {\n    const out = $('Run ' + stage.toUpperCase()).first().json;\n    entry = { stage, ok: out.ok === true, detail: out.error ? String(out.error).slice(0, 160) : (out.label || '') };\n  } catch (e) {\n    // Node did not execute in this run; leave the default entry.\n  }\n  summary.push(entry);\n}\n\nconst failed = summary.filter(s => !s.ok);\nreturn [{ json: {\n  candidate: $('Set Candidate').first().json.candidate,\n  run_id: $execution.id,\n  stages_ok: summary.length - failed.length,\n  stages_failed: failed.length,\n  failed: failed.map(f => f.stage),\n  detail: summary\n} }];\n"
+      }
     }
   ],
   "connections": {
@@ -421,95 +371,106 @@
       "main": [
         [
           {
-            "node": "WF00 Resume ingestion",
+            "node": "Run WF00",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF00 Resume ingestion": {
+    "Run WF00": {
       "main": [
         [
           {
-            "node": "WF01 Configuration loader",
+            "node": "Run WF01",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF01 Configuration loader": {
+    "Run WF01": {
       "main": [
         [
           {
-            "node": "WF02 Job search and scoring",
+            "node": "Run WF02",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF02 Job search and scoring": {
+    "Run WF02": {
       "main": [
         [
           {
-            "node": "WF03 Resume generator",
+            "node": "Run WF03",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF03 Resume generator": {
+    "Run WF03": {
       "main": [
         [
           {
-            "node": "WF04 Cover letter generator",
+            "node": "Run WF04",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF04 Cover letter generator": {
+    "Run WF04": {
       "main": [
         [
           {
-            "node": "WF05 Application executor",
+            "node": "Run WF05",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF05 Application executor": {
+    "Run WF05": {
       "main": [
         [
           {
-            "node": "WF06 Notifications",
+            "node": "Run WF06",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF06 Notifications": {
+    "Run WF06": {
       "main": [
         [
           {
-            "node": "WF07 Interview preparation",
+            "node": "Run WF07",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "WF07 Interview preparation": {
+    "Run WF07": {
       "main": [
         [
           {
-            "node": "WF08 Dashboard aggregation",
+            "node": "Run WF08",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run WF08": {
+      "main": [
+        [
+          {
+            "node": "Run Summary",
             "type": "main",
             "index": 0
           }

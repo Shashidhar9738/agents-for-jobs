@@ -2,13 +2,33 @@
   "name": "WF06 Notifications",
   "nodes": [
     {
+      "id": "wf06-sub",
+      "name": "Called by orchestrator",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -110
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "candidate",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
       "id": "wf06-in",
       "name": "Start",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         0,
-        0
+        110
       ],
       "webhookId": "job-agent-wf06",
       "parameters": {
@@ -40,7 +60,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ candidate: $json.body?.candidate || 'shashi' }) }}",
+        "jsonBody": "={{ JSON.stringify({ candidate: $json.candidate || $json.body?.candidate || 'shashi' }) }}",
         "options": {
           "response": {
             "response": {
@@ -117,6 +137,17 @@
     }
   ],
   "connections": {
+    "Called by orchestrator": {
+      "main": [
+        [
+          {
+            "node": "Run WF06",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Start": {
       "main": [
         [

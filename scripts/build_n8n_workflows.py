@@ -79,14 +79,25 @@ class N8nClient:
 
 
 def stage_workflow(stage: str, pipeline_base: str, api_token: str) -> Dict[str, Any]:
-    """One workflow per stage: webhook -> call Python -> branch on success."""
+    """One workflow per stage, callable two ways.
+
+    An Execute Workflow trigger lets the orchestrator run it as a sub-workflow and
+    receive its output; a webhook lets it be run on its own for debugging. Both
+    feed the same HTTP call, so the two entry points cannot drift apart.
+    """
     label = STAGE_LABELS[stage]
     path = f"job-agent/{stage}"
 
     nodes = [
         {
+            "id": f"{stage}-sub", "name": "Called by orchestrator",
+            "type": "n8n-nodes-base.executeWorkflowTrigger", "typeVersion": 1.1,
+            "position": [0, -110],
+            "parameters": {"workflowInputs": {"values": [{"name": "candidate", "type": "string"}]}},
+        },
+        {
             "id": f"{stage}-in", "name": "Start", "type": "n8n-nodes-base.webhook",
-            "typeVersion": 2, "position": [0, 0], "webhookId": f"job-agent-{stage}",
+            "typeVersion": 2, "position": [0, 110], "webhookId": f"job-agent-{stage}",
             "parameters": {"httpMethod": "POST", "path": path, "responseMode": "responseNode"},
         },
         {
@@ -98,7 +109,8 @@ def stage_workflow(stage: str, pipeline_base: str, api_token: str) -> Dict[str, 
                 "sendHeaders": True,
                 "headerParameters": {"parameters": [{"name": "X-API-Key", "value": api_token}]},
                 "sendBody": True, "specifyBody": "json",
-                "jsonBody": "={{ JSON.stringify({ candidate: $json.body?.candidate || 'shashi' }) }}",
+                # Accepts a candidate from either entry point.
+                "jsonBody": "={{ JSON.stringify({ candidate: $json.candidate || $json.body?.candidate || 'shashi' }) }}",
                 "options": {"response": {"response": {"neverError": True}}},
             },
             # External call: retry with backoff per the spec's error-handling rules.
@@ -137,6 +149,7 @@ def stage_workflow(stage: str, pipeline_base: str, api_token: str) -> Dict[str, 
     ]
 
     connections = {
+        "Called by orchestrator": {"main": [[{"node": f"Run {stage.upper()}", "type": "main", "index": 0}]]},
         "Start": {"main": [[{"node": f"Run {stage.upper()}", "type": "main", "index": 0}]]},
         f"Run {stage.upper()}": {"main": [[{"node": "Succeeded?", "type": "main", "index": 0}]]},
         "Succeeded?": {"main": [
@@ -153,8 +166,19 @@ def stage_workflow(stage: str, pipeline_base: str, api_token: str) -> Dict[str, 
     }
 
 
-def orchestrator_workflow(pipeline_base: str, api_token: str, stages: List[str]) -> Dict[str, Any]:
-    """Chains every stage in order, on a schedule and via webhook."""
+def orchestrator_workflow(
+    pipeline_base: str,
+    api_token: str,
+    stages: List[str],
+    stage_ids: Dict[str, str],
+) -> Dict[str, Any]:
+    """Chains the stage workflows in order, on a schedule and via webhook.
+
+    Calls each stage as a sub-workflow rather than hitting the pipeline directly,
+    so the nine workflows are genuinely wired together: the orchestrator passes
+    the candidate down, each child returns its result, and every stage shows up
+    in n8n's execution history under the parent run.
+    """
     nodes: List[Dict[str, Any]] = [
         {
             "id": "orch-cron", "name": "Daily 09:00", "type": "n8n-nodes-base.scheduleTrigger",
@@ -183,18 +207,17 @@ def orchestrator_workflow(pipeline_base: str, api_token: str, stages: List[str])
     previous = "Set Candidate"
     x = 480
     for stage in stages:
-        name = f"{stage.upper()} {STAGE_LABELS[stage]}"
+        name = f"Run {stage.upper()}"
         nodes.append({
             "id": f"orch-{stage}", "name": name,
-            "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [x, 0],
+            "type": "n8n-nodes-base.executeWorkflow", "typeVersion": 1.2, "position": [x, 0],
             "parameters": {
-                "method": "POST",
-                "url": f"{pipeline_base}/api/stage/{stage}",
-                "sendHeaders": True,
-                "headerParameters": {"parameters": [{"name": "X-API-Key", "value": api_token}]},
-                "sendBody": True, "specifyBody": "json",
-                "jsonBody": "={{ JSON.stringify({ candidate: $('Set Candidate').first().json.candidate }) }}",
-                "options": {"response": {"response": {"neverError": True}}},
+                "workflowId": {"__rl": True, "value": stage_ids[stage], "mode": "id"},
+                "workflowInputs": {
+                    "mappingMode": "defineBelow",
+                    "value": {"candidate": "={{ $('Set Candidate').first().json.candidate }}"},
+                },
+                "options": {"waitForSubWorkflow": True},
             },
             "retryOnFail": True, "maxTries": 3, "waitBetweenTries": 2000,
             # One failing stage must not abort the run; later stages still execute.
@@ -202,7 +225,15 @@ def orchestrator_workflow(pipeline_base: str, api_token: str, stages: List[str])
         })
         connections[previous] = {"main": [[{"node": name, "type": "main", "index": 0}]]}
         previous = name
-        x += 220
+        x += 200
+
+    # Collapse every stage result into one run summary.
+    nodes.append({
+        "id": "orch-summary", "name": "Run Summary", "type": "n8n-nodes-base.code",
+        "typeVersion": 2, "position": [x, 0],
+        "parameters": {"jsCode": _SUMMARY_JS},
+    })
+    connections[previous] = {"main": [[{"node": "Run Summary", "type": "main", "index": 0}]]}
 
     return {
         "name": "WF-ORCHESTRATOR Full pipeline",
@@ -210,6 +241,33 @@ def orchestrator_workflow(pipeline_base: str, api_token: str, stages: List[str])
         "connections": connections,
         "settings": {"executionOrder": "v1"},
     }
+
+
+_SUMMARY_JS = """
+const stages = ['wf00','wf01','wf02','wf03','wf04','wf05','wf06','wf07','wf08'];
+const summary = [];
+
+for (const stage of stages) {
+  let entry = { stage, ok: false, detail: 'not run' };
+  try {
+    const out = $('Run ' + stage.toUpperCase()).first().json;
+    entry = { stage, ok: out.ok === true, detail: out.error ? String(out.error).slice(0, 160) : (out.label || '') };
+  } catch (e) {
+    // Node did not execute in this run; leave the default entry.
+  }
+  summary.push(entry);
+}
+
+const failed = summary.filter(s => !s.ok);
+return [{ json: {
+  candidate: $('Set Candidate').first().json.candidate,
+  run_id: $execution.id,
+  stages_ok: summary.length - failed.length,
+  stages_failed: failed.length,
+  failed: failed.map(f => f.stage),
+  detail: summary
+} }];
+"""
 
 
 def main() -> int:
@@ -228,17 +286,12 @@ def main() -> int:
         return 1
 
     stages = [s for s in STAGE_ORDER]
-    definitions = {s: stage_workflow(s, args.pipeline, token) for s in stages}
-    definitions["orchestrator"] = orchestrator_workflow(args.pipeline, token, stages)
-
-    WORKFLOWS_DIR.mkdir(exist_ok=True)
-    for key, payload in definitions.items():
-        # Exported copies carry a placeholder instead of the real token.
-        export = json.loads(json.dumps(payload).replace(token, "${JOB_AGENT_API_TOKEN}"))
-        (WORKFLOWS_DIR / f"{key}.json").write_text(json.dumps(export, indent=2), encoding="utf-8")
-    print(f"[OK] exported {len(definitions)} workflow(s) to {WORKFLOWS_DIR}")
+    stage_defs = {s: stage_workflow(s, args.pipeline, token) for s in stages}
 
     if args.export_only:
+        # No server, so reference stages by name rather than a real id.
+        _export(stage_defs, orchestrator_workflow(args.pipeline, token, stages,
+                                                  {s: f"<{s}-id>" for s in stages}), token)
         return 0
 
     client = N8nClient(args.n8n)
@@ -249,14 +302,15 @@ def main() -> int:
         return 1
 
     existing = {w["name"]: w["id"] for w in client.list_workflows()}
-    for key, payload in definitions.items():
+
+    def upsert(payload: Dict[str, Any]) -> Dict[str, Any] | None:
         name = payload["name"]
         try:
             if name in existing:
                 current = client.get(existing[name])
-                payload_with_version = dict(payload)
-                payload_with_version["versionId"] = current["versionId"]
-                result = client.update(existing[name], payload_with_version)
+                body = dict(payload)
+                body["versionId"] = current["versionId"]
+                result = client.update(existing[name], body)
                 action = "updated"
             else:
                 result = client.create(payload)
@@ -265,10 +319,39 @@ def main() -> int:
             if args.activate:
                 status = " · active" if client.activate(result["id"]) else " · ACTIVATION FAILED"
             print(f"  [{action}] {name}{status}")
+            return result
         except urllib.error.HTTPError as exc:
-            print(f"  [FAIL] {name}: {exc.code} {exc.read().decode()[:160]}")
+            print(f"  [FAIL] {name}: {exc.code} {exc.read().decode()[:200]}")
+            return None
 
+    # Children first: the orchestrator needs their real ids to call them.
+    stage_ids: Dict[str, str] = {}
+    for stage in stages:
+        result = upsert(stage_defs[stage])
+        if result:
+            stage_ids[stage] = result["id"]
+
+    missing = [s for s in stages if s not in stage_ids]
+    if missing:
+        print(f"[FAIL] could not create stage workflows: {', '.join(missing)}")
+        return 1
+
+    orchestrator = orchestrator_workflow(args.pipeline, token, stages, stage_ids)
+    upsert(orchestrator)
+
+    _export(stage_defs, orchestrator, token)
     return 0
+
+
+def _export(stage_defs: Dict[str, Any], orchestrator: Dict[str, Any], token: str) -> None:
+    """Write the workflow JSON to workflows/, with the token redacted."""
+    WORKFLOWS_DIR.mkdir(exist_ok=True)
+    payloads = dict(stage_defs)
+    payloads["orchestrator"] = orchestrator
+    for key, payload in payloads.items():
+        redacted = json.loads(json.dumps(payload).replace(token, "${JOB_AGENT_API_TOKEN}"))
+        (WORKFLOWS_DIR / f"{key}.json").write_text(json.dumps(redacted, indent=2), encoding="utf-8")
+    print(f"[OK] exported {len(payloads)} workflow(s) to {WORKFLOWS_DIR}")
 
 
 if __name__ == "__main__":
