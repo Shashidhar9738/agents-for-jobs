@@ -1,7 +1,7 @@
 {
-  "default": "gpt-4.1",
+  "default": "openai/gpt-4.1",
   "openai": {
-    "enabled": true,
+    "enabled": false,
     "api_key_env": "OPENAI_API_KEY",
     "model": "gpt-4.1"
   },
@@ -26,13 +26,25 @@
     "model": ""
   },
   "openrouter": {
-    "enabled": false,
+    "enabled": true,
     "api_key_env": "OPENROUTER_API_KEY",
-    "model": ""
+    "model": "openai/gpt-4.1",
+    "json_mode": true,
+    "site_url": "http://localhost:5678",
+    "app_name": "AI Job Application Platform"
   },
   "ollama": {
     "enabled": false,
     "base_url": "http://localhost:11434",
     "model": ""
+  },
+  "pricing": {
+    "openai/gpt-4.1": { "input": 2.0, "output": 8.0 },
+    "openai/gpt-4.1-mini": { "input": 0.4, "output": 1.6 },
+    "openai/gpt-4o-mini": { "input": 0.15, "output": 0.6 },
+    "anthropic/claude-sonnet-4": { "input": 3.0, "output": 15.0 },
+    "google/gemini-2.5-flash": { "input": 0.3, "output": 2.5 },
+    "deepseek/deepseek-chat": { "input": 0.27, "output": 1.1 },
+    "meta-llama/llama-3.3-70b-instruct": { "input": 0.12, "output": 0.3 }
   }
 }

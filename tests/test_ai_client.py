@@ -186,6 +186,60 @@ class CompletionTests(unittest.TestCase):
         self.assertGreater(client.usage.as_metadata()["estimated_cost_usd"], 0.0)
 
 
+class OpenRouterTests(unittest.TestCase):
+    def _context(self) -> Dict[str, Any]:
+        return {
+            "ai_provider": "openrouter",
+            "ai_model": "openai/gpt-4.1",
+            "ai_models": {
+                "default": "openai/gpt-4.1",
+                "openrouter": {
+                    "enabled": True,
+                    "api_key_env": "TEST_OPENROUTER_KEY",
+                    "model": "openai/gpt-4.1",
+                    "site_url": "http://localhost:5678",
+                    "app_name": "AI Job Application Platform",
+                },
+                "pricing": {"openai/gpt-4.1": {"input": 2.0, "output": 8.0}},
+            },
+        }
+
+    def test_sends_attribution_headers_and_prices_namespaced_model(self) -> None:
+        with mock.patch.dict("os.environ", {"TEST_OPENROUTER_KEY": "sk-or-test"}, clear=True):
+            client = AIClient.from_run_context(self._context())
+            with mock.patch("requests.post", return_value=_FakeResponse(200, _openai_payload('{"ok": true}'))) as post:
+                response = client.complete_json("sys", "user", purpose="wf03")
+
+        self.assertEqual(response.data, {"ok": True})
+        headers = post.call_args.kwargs["headers"]
+        self.assertEqual(headers["Authorization"], "Bearer sk-or-test")
+        self.assertEqual(headers["HTTP-Referer"], "http://localhost:5678")
+        self.assertEqual(headers["X-Title"], "AI Job Application Platform")
+        self.assertIn("openrouter.ai", post.call_args.args[0] if post.call_args.args else post.call_args.kwargs.get("url", ""))
+        # Namespaced pricing key must resolve, otherwise cost silently reports zero.
+        self.assertAlmostEqual(
+            client.usage.as_metadata()["estimated_cost_usd"], 100 / 1e6 * 2.0 + 50 / 1e6 * 8.0, places=8
+        )
+
+    def test_json_mode_can_be_disabled_for_models_that_reject_it(self) -> None:
+        context = self._context()
+        context["ai_models"]["openrouter"]["json_mode"] = False
+        with mock.patch.dict("os.environ", {"TEST_OPENROUTER_KEY": "sk-or-test"}, clear=True):
+            client = AIClient.from_run_context(context)
+            with mock.patch("requests.post", return_value=_FakeResponse(200, _openai_payload('{"ok": true}'))) as post:
+                client.complete_json("sys", "user", purpose="wf03")
+
+        self.assertNotIn("response_format", post.call_args.kwargs["json"])
+
+    def test_upstream_error_in_200_body_is_raised(self) -> None:
+        payload = {"error": {"message": "upstream model unavailable"}}
+        with mock.patch.dict("os.environ", {"TEST_OPENROUTER_KEY": "sk-or-test"}, clear=True):
+            client = AIClient.from_run_context(self._context())
+            with mock.patch("requests.post", return_value=_FakeResponse(200, payload)):
+                with self.assertRaises(AIClientError):
+                    client.complete_json("sys", "user", purpose="wf03")
+
+
 class RedactionTests(unittest.TestCase):
     def test_masks_api_keys_in_error_text(self) -> None:
         masked = _redact("failed with key sk-abcdef1234567890 attached")

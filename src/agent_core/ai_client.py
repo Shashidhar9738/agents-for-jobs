@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Tuple
 
 import requests
 
+from src.agent_core.net import use_system_trust_store
+
 
 class AIClientError(RuntimeError):
     """Raised when the AI provider is misconfigured or fails permanently."""
@@ -201,7 +203,7 @@ class AIClient:
         self, system_prompt: str, user_prompt: str, max_tokens: int, temperature: float
     ) -> Tuple[str, int, int]:
         url = f"{self._base_url(_OPENAI_COMPATIBLE[self.provider])}/chat/completions"
-        payload = {
+        payload: Dict[str, Any] = {
             "model": self.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
@@ -209,9 +211,22 @@ class AIClient:
             ],
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "response_format": {"type": "json_object"},
         }
-        body = self._post(url, payload, {"Authorization": f"Bearer {self._api_key}"})
+        # OpenRouter proxies many models and not all of them accept json_object mode,
+        # so it stays configurable. Replies are parsed leniently either way.
+        if self._config.get("json_mode", True):
+            payload["response_format"] = {"type": "json_object"}
+
+        headers = {"Authorization": f"Bearer {self._api_key}"}
+        if self.provider == "openrouter":
+            headers.update(self._openrouter_attribution())
+
+        body = self._post(url, payload, headers)
+
+        # OpenRouter can report upstream failures inside a 200 response body.
+        error = body.get("error")
+        if isinstance(error, dict) and error.get("message"):
+            raise AIClientError(f"{self.provider} upstream error: {_redact(str(error['message']))[:300]}")
 
         choices = body.get("choices") or []
         if not choices:
@@ -223,6 +238,17 @@ class AIClient:
             int(usage.get("prompt_tokens", 0)),
             int(usage.get("completion_tokens", 0)),
         )
+
+    def _openrouter_attribution(self) -> Dict[str, str]:
+        """Optional ranking headers OpenRouter uses to attribute traffic."""
+        headers: Dict[str, str] = {}
+        referer = self._config.get("site_url")
+        title = self._config.get("app_name")
+        if isinstance(referer, str) and referer.strip():
+            headers["HTTP-Referer"] = referer.strip()
+        if isinstance(title, str) and title.strip():
+            headers["X-Title"] = title.strip()
+        return headers
 
     def _call_anthropic(
         self, system_prompt: str, user_prompt: str, max_tokens: int, temperature: float
@@ -301,6 +327,7 @@ class AIClient:
         return text, prompt_tokens, completion_tokens
 
     def _post(self, url: str, payload: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
+        use_system_trust_store()
         request_headers = {"Content-Type": "application/json", **headers}
         last_error: Exception | None = None
 
