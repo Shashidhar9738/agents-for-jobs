@@ -76,3 +76,11 @@ Automation-ready workspace for two candidates (Shashidhar and Aishwarya) to sear
 - Keep keys and secrets only in local `.env` and local credential JSON.
 - Do not commit secret files.
 - Respect platform ToS and rate limits.
+
+## Build Instruction File
+
+If you want an implementation agent to build the entire platform thoroughly, use:
+
+- `AGENT_BUILD_CONTEXT.md`
+
+This file contains workflow-by-workflow instructions, node-level expectations, prompt contracts, schemas, error handling, retries, QA gates, and definition of done.
