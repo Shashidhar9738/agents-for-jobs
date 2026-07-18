@@ -1,0 +1,15 @@
+[
+  {
+    "role_title": "Senior SDET",
+    "company": "Nimbus Telecom",
+    "location": "Remote - India",
+    "job_url": "https://example.com/j1",
+    "job_description": "Senior SDET owning end-to-end automation. Java, Selenium WebDriver, REST API testing, Jenkins CI/CD.",
+    "key_required_skills": [
+      "Java",
+      "Selenium",
+      "API Testing",
+      "Jenkins"
+    ]
+  }
+]

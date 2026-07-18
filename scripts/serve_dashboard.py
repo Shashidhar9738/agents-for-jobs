@@ -32,9 +32,15 @@ init_runtime(REPO_ROOT)
 
 from src.agent_core.artifact_store import build_index  # noqa: E402
 from src.agent_core.config_loader import build_runtime_context  # noqa: E402
-from src.agent_core.auth import SessionStore, User, UserStore  # noqa: E402
+from src.agent_core.auth import (  # noqa: E402
+    SessionStore,
+    User,
+    UserStore,
+    machine_user_from_token,
+)
 from src.agent_core.interview_prep import generate_interview_prep  # noqa: E402
 from src.agent_core.resume_ingest import ingest_master_resume  # noqa: E402
+from src.agent_core.stages import StageError, run_stage  # noqa: E402
 from src.agent_core.vault import CredentialVault, VaultError  # noqa: E402
 
 ALLOWED_RESUME_SUFFIXES = {".pdf", ".docx", ".txt", ".md"}
@@ -348,6 +354,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return None
 
     def _current_user(self) -> User | None:
+        # Service callers (n8n) present a token header; humans present a cookie.
+        machine = machine_user_from_token(self.headers.get("X-API-Key"))
+        if machine is not None:
+            return machine
         return SESSIONS.get(self._session_token())
 
     def _require_user(self) -> User | None:
@@ -489,6 +499,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         if route == "/api/suggest-portals":
             self._handle_suggest_portals()
+            return
+
+        if route.startswith("/api/stage/"):
+            self._handle_stage(route.rsplit("/", 1)[-1])
             return
 
         if route == "/api/upload-resume":
@@ -683,6 +697,31 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         suggestions = _suggest_portals(context)
         self._send_json({"ok": True, "suggestions": suggestions})
+
+    def _handle_stage(self, stage: str) -> None:
+        """Run one pipeline stage. This is what each n8n workflow node calls."""
+        user = self._require_user()
+        if user is None:
+            return
+
+        body = self._read_json_body()
+        candidate = str(body.get("candidate", "")).strip()
+        if not self._require_candidate_access(user, candidate):
+            return
+
+        try:
+            result = run_stage(REPO_ROOT, stage, candidate, body)
+        except StageError as exc:
+            self._send_json({"ok": False, "stage": stage, "error": str(exc)}, 400)
+            return
+        except Exception as exc:
+            # Surface the failure so the n8n error branch has something to route on.
+            self._send_json(
+                {"ok": False, "stage": stage, "error": f"{type(exc).__name__}: {exc}"}, 500
+            )
+            return
+
+        self._send_json(result)
 
     def _safe_target_dir(self, raw: str) -> Path | None:
         """Resolve a job-target folder, confined to Profiles/."""

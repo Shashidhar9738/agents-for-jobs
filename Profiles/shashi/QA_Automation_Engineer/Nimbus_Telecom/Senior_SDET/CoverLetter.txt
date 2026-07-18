@@ -1,0 +1,12 @@
+Dear Hiring Team,
+
+I am excited to apply for the Senior SDET position at Nimbus Telecom. The opportunity to own end-to-end automation and contribute to a forward-thinking company known for its innovation in telecom technology strongly aligns with my professional aspirations. The focus on Java, Selenium WebDriver, REST API testing, and Jenkins CI/CD in your job description directly matches my technical strengths and career trajectory.
+
+With over six years of experience as a Senior QA Automation Engineer, I have developed and maintained robust automation frameworks using Java and Selenium WebDriver. My work has consistently emphasized building scalable, maintainable test suites and integrating them with Jenkins for continuous integration and delivery. I am adept at REST API testing, leveraging tools such as Postman and Rest Assured to validate complex backend services. My hands-on experience with Git and SQL further supports my ability to manage code repositories and validate data integrity throughout the testing lifecycle.
+
+The Senior SDET role at Nimbus Telecom is a natural progression for my career, as it emphasizes technical ownership and a proactive approach to quality assurance. My background in designing and executing automation strategies has enabled teams to identify issues early and deliver reliable software releases. I am particularly drawn to the remote work model, which fits seamlessly with my preferred working style and past experience collaborating with distributed teams.
+
+I am eager to bring my expertise in Java, Selenium WebDriver, REST API testing, and Jenkins to Nimbus Telecom and contribute to your mission of delivering high-quality solutions. Thank you for considering my application. I look forward to the possibility of discussing how my background and skills can add value to your team.
+
+Sincerely,
+Shashidhar Yadala

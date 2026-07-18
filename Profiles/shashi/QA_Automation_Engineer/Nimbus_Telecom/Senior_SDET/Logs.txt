@@ -1,0 +1,5 @@
+2026-07-18T21:43:47.713525+00:00	WF02	persist_job_target	OK	Apply
+2026-07-18T21:44:25.413656+00:00	WF03	generate_resume	OK	mode=ai
+2026-07-18T21:44:30.328506+00:00	WF04	generate_cover_letter	OK	mode=ai
+2026-07-18T21:44:31.015862+00:00	WF05	execute_application	Prepared
+2026-07-18T21:44:38.402027+00:00	WF07	generate_interview_prep	OK

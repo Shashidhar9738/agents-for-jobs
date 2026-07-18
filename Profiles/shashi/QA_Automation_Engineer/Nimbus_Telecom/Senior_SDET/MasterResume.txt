@@ -1,0 +1,13 @@
+Shashidhar Yadala
+Senior QA Automation Engineer
+
+6 years of experience in test automation.
+
+SKILLS
+Java, Selenium WebDriver, TestNG, Rest Assured, Postman, Jenkins, Git, SQL
+
+EXPERIENCE
+Comviva Technologies - Senior QA Engineer
+- Built Selenium WebDriver and TestNG automation frameworks.
+- Designed REST API regression suites using Rest Assured.
+- Integrated automated execution into Jenkins CI pipelines.

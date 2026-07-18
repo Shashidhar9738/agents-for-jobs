@@ -1,5 +1,5 @@
 {
-  "name": "Shashidhar",
+  "name": "Shashidhar Yadala",
   "email": "",
   "phone": "",
   "experience_years": 6,
@@ -12,10 +12,7 @@
     "Postman",
     "Jenkins",
     "Git",
-    "SQL",
-    "JMeter",
-    "Cucumber",
-    "Maven"
+    "SQL"
   ],
   "locations": [
     "Remote",
@@ -43,12 +40,11 @@
     {
       "company": "Comviva Technologies",
       "title": "Senior QA Engineer",
-      "duration": "2021-2026"
-    },
-    {
-      "company": "Infosys",
-      "title": "QA Engineer",
-      "duration": "2019-2021"
+      "duration": ""
     }
-  ]
+  ],
+  "profile_source": {
+    "derived_from": "master_resume",
+    "ingested_at": "2026-07-18T21:44:21.312402+00:00"
+  }
 }

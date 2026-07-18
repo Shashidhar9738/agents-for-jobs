@@ -157,6 +157,30 @@ class UserStore:
         return None
 
 
+API_TOKEN_ENV = "JOB_AGENT_API_TOKEN"
+
+
+def machine_user_from_token(token: str | None) -> User | None:
+    """Authenticate a service caller (n8n) via a shared API token.
+
+    Browser sessions are unsuitable for workflow engines, so a single token in
+    the environment grants machine access. It is admin-scoped because the
+    orchestrator runs stages for every candidate; keep it out of source control.
+    """
+    import os
+
+    expected = os.getenv(API_TOKEN_ENV, "").strip()
+    if not expected or not token:
+        return None
+    if not hmac.compare_digest(token.strip(), expected):
+        return None
+    return User(username="n8n", role=ROLE_ADMIN, candidate_id=None)
+
+
+def generate_api_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
 class SessionStore:
     """In-memory sessions. Cleared on restart, which is fine for a local tool."""
 
