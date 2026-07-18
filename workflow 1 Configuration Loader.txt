@@ -1,0 +1,929 @@
+workflow 1 Configuration Loader
+AI Models
+
+OpenAI
+
+Claude
+
+Gemini
+
+DeepSeek
+
+Groq
+
+OpenRouter
+
+Ollama
+
+API Keys
+
+Storage Paths
+
+Notification Settings
+
+Job Portals
+
+Credentials
+
+Resume Location
+
+Workflow 2
+Job Search
+Cron
+
+↓
+
+Load Configuration
+
+↓
+
+Indeed
+
+↓
+
+LinkedIn
+
+↓
+
+Naukri
+
+↓
+
+Foundit
+
+↓
+
+Wellfound
+
+↓
+
+Greenhouse
+
+↓
+
+Lever
+
+↓
+
+RemoteOK
+
+↓
+
+Dice
+
+↓
+
+Filter
+
+↓
+
+Store JD
+
+
+
+Every JD stored as
+Jobs/
+
+Software Engineer/
+
+Company/
+
+JD.txt
+
+metadata.json
+
+
+work flow 3 Resume Generator
+Read Master Resume
+
+↓
+
+Read JD
+
+↓
+
+Read Prompt
+
+↓
+
+AI
+
+↓
+
+Generate Resume
+
+↓
+
+Validate
+
+↓
+
+One Page Check
+
+↓
+
+PDF
+
+↓
+
+Store
+
+
+Generated as
+Generated/
+
+Software Engineer/
+
+Google/
+
+Resume.pdf
+
+Resume.docx
+
+resume.json
+
+work flow 4 Cover Letter
+
+Resume
+
++
+
+JD
+
+↓
+
+AI
+
+↓
+
+Generate
+
+↓
+
+Store
+
+
+
+CoverLetters/
+
+Software Engineer/
+
+Google/
+
+CoverLetter.docx
+
+CoverLetter.pdf
+
+Workflow 5
+
+Application
+
+Portal
+
+↓
+
+Login
+
+↓
+
+Read Resume
+
+↓
+
+Read Cover Letter
+
+↓
+
+Upload
+
+↓
+
+Answer Questions
+
+↓
+
+Submit
+
+↓
+
+Screenshot
+
+↓
+
+Status
+
+Workflow 6
+
+Notification
+
+Whenever applied
+
+↓
+
+Email
+
+or
+
+WhatsApp
+
+Message
+
+Applied
+
+Google
+
+SDET
+
+Location
+
+Resume Used
+
+Application Link
+
+Status
+
+
+Workflow 7
+
+Interview Preparation
+
+After successful application
+Resume
+
++
+
+JD
+
+↓
+
+AI
+
+↓
+
+Interview Questions
+
+↓
+
+STAR Questions
+
+↓
+
+Coding Questions
+
+↓
+
+Behavioral Questions
+
+↓
+
+PDF
+
+Interview/
+
+Software Engineer/
+
+Google/
+
+Questions.pdf
+
+Answers.md
+
+
+Workflow 8
+
+Dashboard
+
+Shows
+Jobs Found
+
+Applied
+
+Rejected
+
+Pending
+
+Resume Used
+
+AI Used
+
+Tokens Used
+
+Cost
+
+Companies
+
+Success Rate
+
+Interview Calls
+
+Notifications
+
+
+Folder Structure per Profile
+
+Instead of
+
+Generated Resume.pdf
+
+Store like
+Profiles/
+
+QA Automation Engineer/
+
+Amazon/
+
+│
+
+├── JD.txt
+
+├── Resume.pdf
+
+├── Resume.docx
+
+├── CoverLetter.pdf
+
+├── CoverLetter.docx
+
+├── Interview Questions.pdf
+
+├── Application.json
+
+├── Screenshot.png
+
+├── Logs.txt
+
+
+
+Tomorrow if another profile comes
+Profiles/
+
+DevOps Engineer/
+
+Google/
+
+Master Resume
+
+There should NEVER be multiple master resumes.
+resumes/
+
+master/
+
+master_resume.pdf
+
+
+The workflow always starts from here.
+
+It extracts
+Skills
+
+Experience
+
+Projects
+
+Achievements
+
+Education
+
+Certifications
+
+Configuration Files
+
+ai-models.json
+{
+  "default":"gpt-4.1",
+
+  "openai":{
+      "api_key":"",
+      "model":"gpt-4.1"
+  },
+
+  "claude":{
+
+  },
+
+  "gemini":{
+
+  },
+
+  "ollama":{
+
+  }
+}
+
+
+portals.json
+{
+   "linkedin":{
+      "email":"",
+      "password":""
+   },
+
+   "indeed":{
+
+   },
+
+   "naukri":{
+
+   },
+
+   "foundit":{
+
+   }
+}
+
+notifications.json
+{
+   "email":{
+
+   },
+
+   "whatsapp":{
+
+   }
+}
+
+
+Prompt Files
+
+Never hardcode prompts inside n8n.
+
+Use markdown files.
+
+Example
+Prompt Files
+
+Never hardcode prompts inside n8n.
+
+Use markdown files.
+
+Example
+resume-builder.md
+
+cover-letter.md
+
+interview.md
+
+job-matcher.md
+
+validator.md
+
+Resume Prompt Requirements
+
+The prompt should enforce rules like:
+
+Do not fabricate experience.
+
+Never change employment dates.
+
+Never modify company names.
+
+Never modify certifications.
+
+Never exceed one page.
+
+Keep formatting identical.
+
+Tailor only:
+
+Summary
+
+Skills ordering
+
+Projects ordering
+
+Keywords
+
+Achievements ordering
+
+ATS optimization
+Cover Letter Prompt
+
+Rules
+
+Professional
+
+Maximum 350 words
+
+Mention company
+
+Mention role
+
+Mention matching skills
+
+No fake achievements
+
+No generic AI wording
+
+Interview Prompt
+
+Generate
+
+Technical Questions
+
+HR Questions
+
+Behavioral Questions
+
+STAR Answers
+
+Coding Questions
+
+System Design
+
+Company Specific Questions
+The Most Important Prompt
+
+Create a system.md that defines global behavior for every AI task. It should include instructions such as:
+
+You are an AI recruitment assistant.
+
+Never fabricate information.
+
+Never invent skills.
+
+Never modify employment history.
+
+Never change education.
+
+Never alter certifications.
+
+Maintain ATS compliance.
+
+Maintain formatting.
+
+Resume maximum 1 page.
+
+Output must be professional.
+
+Store every artifact in the correct profile folder.
+
+Never overwrite previous applications.
+
+Always create structured folders automatically.
+
+Generate JSON metadata for every application.
+
+Every output must be reproducible.
+
+Use configuration files instead of hardcoded values.
+
+Use prompts only from the prompts folder.
+
+Support multiple AI models.
+
+Support multiple job portals.
+
+Support future profile types automatically.
+
+Log every step for auditing.
+One more improvement: make it profile-driven
+
+Instead of hardcoding "QA Engineer" or "SDET", define profiles in a configuration file such as:
+
+{
+  "profiles": [
+    {
+      "id": "qa_automation",
+      "name": "QA Automation Engineer",
+      "keywords": ["Selenium", "Java", "API Testing", "JMeter"]
+    },
+    {
+      "id": "sdet",
+      "name": "SDET",
+      "keywords": ["Automation", "Java", "CI/CD", "TestNG"]
+    },
+    {
+      "id": "performance",
+      "name": "Performance Test Engineer",
+      "keywords": ["JMeter", "LoadRunner", "Performance Testing"]
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The Markdown I generated is only a project overview, not an implementation specification.
+
+For the system you want, the workflows are actually the most important part, and each workflow should contain:
+
+Purpose
+Trigger
+Every n8n node (in order)
+Node configuration
+Inputs
+Outputs
+Error handling
+Retry logic
+AI prompt used
+Files created
+Where data is stored
+Next workflow to trigger
+
+For example, instead of simply writing:
+
+Workflow 2: Job Search
+
+it should look like this:
+
+Workflow 02 - Job Search
+
+Trigger
+-------
+Cron (Every 30 minutes)
+
+↓
+
+Load Settings (config/settings.json)
+
+↓
+
+Load Profiles (profiles.json)
+
+↓
+
+For Each Profile
+
+↓
+
+Read Job Portals
+
+↓
+
+LinkedIn Search
+
+↓
+
+Indeed Search
+
+↓
+
+Naukri Search
+
+↓
+
+Foundit Search
+
+↓
+
+Greenhouse Search
+
+↓
+
+Lever Search
+
+↓
+
+RemoteOK Search
+
+↓
+
+Merge Results
+
+↓
+
+Remove Duplicate Jobs
+
+↓
+
+AI Job Matcher
+
+↓
+
+Score Job
+
+↓
+
+Score > 85 ?
+
+      Yes ------------------> Store JD
+      No -------------------> Ignore
+
+↓
+
+Trigger Resume Workflow
+
+Then every node is explained like this:
+
+Node Name:
+LinkedIn Search
+
+Type:
+HTTP Request / Playwright
+
+Inputs:
+- Keywords
+- Experience
+- Location
+- Remote preference
+
+Outputs:
+- Company
+- Job Title
+- Job Description
+- Apply URL
+- Salary
+- Portal Name
+
+Errors:
+- Login Failed
+- CAPTCHA
+- Rate Limit
+- Timeout
+
+Retries:
+3
+What I actually recommend building
+
+Not one Markdown file.
+
+A complete project documentation like this:
+
+AI-Job-Agent/
+│
+├── 01_Project_Overview.md
+├── 02_Folder_Structure.md
+├── 03_System_Architecture.md
+├── 04_Workflow_01_Config_Loader.md
+├── 05_Workflow_02_Job_Search.md
+├── 06_Workflow_03_Resume_Generator.md
+├── 07_Workflow_04_Cover_Letter.md
+├── 08_Workflow_05_Job_Application.md
+├── 09_Workflow_06_Notifications.md
+├── 10_Workflow_07_Interview_Preparation.md
+├── 11_Workflow_08_Dashboard.md
+├── 12_AI_Prompts.md
+├── 13_Config_Files.md
+├── 14_Error_Handling.md
+├── 15_File_Structure.md
+├── 16_Playwright_Strategy.md
+├── 17_Logging.md
+├── 18_Database_Schema.md
+├── 19_Installation_Guide.md
+├── 20_Development_Roadmap.md
+└── README.md
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AI-Job-Agent-Documentation/
+│
+├── README.md
+│
+├── 01_Project_Documentation/
+│   ├── Vision.md
+│   ├── Requirements.md
+│   ├── Architecture.md
+│   ├── Technology Stack.md
+│   ├── Folder Structure.md
+│   ├── Database.md
+│   ├── API Design.md
+│   ├── Security.md
+│   ├── Error Handling.md
+│   ├── Logging.md
+│   ├── Deployment.md
+│   └── Future Scope.md
+│
+├── 02_Workflows/
+│   ├── WF01_Configuration_Loader.md
+│   ├── WF02_Profile_Manager.md
+│   ├── WF03_Job_Search.md
+│   ├── WF04_Job_Filter.md
+│   ├── WF05_Company_Research.md
+│   ├── WF06_Resume_Generator.md
+│   ├── WF07_ATS_Validator.md
+│   ├── WF08_Cover_Letter.md
+│   ├── WF09_Application.md
+│   ├── WF10_Application_Verification.md
+│   ├── WF11_Notification.md
+│   ├── WF12_Interview_Preparation.md
+│   ├── WF13_Dashboard.md
+│   ├── WF14_Retry_Manager.md
+│   └── WF15_Cleanup.md
+│
+├── 03_Prompts/
+│   ├── system.md
+│   ├── resume_builder.md
+│   ├── ats_optimizer.md
+│   ├── resume_validator.md
+│   ├── keyword_extractor.md
+│   ├── jd_parser.md
+│   ├── job_matcher.md
+│   ├── company_research.md
+│   ├── cover_letter.md
+│   ├── application_answers.md
+│   ├── recruiter_message.md
+│   ├── interview_questions.md
+│   ├── hr_questions.md
+│   ├── technical_questions.md
+│   ├── coding_questions.md
+│   ├── behavioral_questions.md
+│   ├── star_answers.md
+│   ├── followup_email.md
+│   ├── application_summary.md
+│   ├── notification.md
+│   ├── profile_classifier.md
+│   ├── salary_analysis.md
+│   ├── duplicate_checker.md
+│   ├── document_formatter.md
+│   ├── pdf_validator.md
+│   ├── grammar_checker.md
+│   ├── profile_summary.md
+│   ├── ai_self_review.md
+│   ├── workflow_validator.md
+│   └── final_quality_check.md
+│
+├── 04_Config/
+│
+├── 05_JSON_Schemas/
+│
+├── 06_Sample_Data/
+│
+├── 07_Playwright/
+│
+├── 08_n8n/
+│
+├── 09_Python/
+│
+├── 10_Testing/
+│
+└── 11_Installation/
+
+
+he workflow specifications won't just describe the workflows.
+
+Each one will contain:
+
+Objective
+Business Rules
+Trigger
+Input
+Output
+Every n8n node
+Expressions
+Connections
+AI Prompt used
+Python scripts
+Playwright scripts
+Folder operations
+Retry strategy
+Exception handling
+Logging
+Sample execution
+Expected JSON
+Performance considerations
+The prompt files won't be simple prompts.
+
+Each prompt will include:
+
+Objective
+Context
+Input format
+Expected output format
+Validation rules
+Failure conditions
+Few-shot examples
+Negative examples
+JSON schema
+Prompt version
+Future tuning notes
