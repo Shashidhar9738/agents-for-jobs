@@ -1,11 +1,1 @@
 Date,CandidateId,Company,Role,Location,JobURL,Source,MatchScore,Status,Reason,ResumeVersion,CoverLetterVersion,FollowUpDate,Notes
-2026-07-18T19:59:23.838790+00:00,Nimbus Telecom,Senior SDET,Remote - India,64,Review,https://example.com/jobs/sdet-1
-2026-07-18T19:59:30.585751+00:00,Arclight Systems,QA Automation Engineer,Hyderabad,60,Review,https://example.com/jobs/qa-2
-2026-07-18T20:12:57.849133+00:00,Nimbus Telecom,Senior SDET,Remote - India,75,Review,https://example.com/jobs/sdet-1
-2026-07-18T20:13:01.141834+00:00,Arclight Systems,QA Automation Engineer,Hyderabad,72,Review,https://example.com/jobs/qa-2
-2026-07-18T20:13:21.068806+00:00,Nimbus Telecom,Senior SDET,Remote - India,75,Review,https://example.com/jobs/sdet-1
-2026-07-18T20:13:23.239692+00:00,Arclight Systems,QA Automation Engineer,Hyderabad,72,Review,https://example.com/jobs/qa-2
-2026-07-18T20:14:31.826234+00:00,Nimbus Telecom,Senior SDET,Remote - India,75,Review,https://example.com/jobs/sdet-1
-2026-07-18T20:14:33.319627+00:00,Arclight Systems,QA Automation Engineer,Hyderabad,72,Review,https://example.com/jobs/qa-2
-2026-07-18T20:16:24.157852+00:00,Nimbus Telecom,Senior SDET,Remote - India,81,Prepared,https://example.com/jobs/sdet-1
-2026-07-18T20:16:31.171896+00:00,Arclight Systems,QA Automation Engineer,Hyderabad,78,Review,https://example.com/jobs/qa-2

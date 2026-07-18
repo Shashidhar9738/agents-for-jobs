@@ -1,7 +1,7 @@
 {
-  "name": "Shashidhar Yadala",
-  "email": "shashidhar.y@example.com",
-  "phone": "+919876543210",
+  "name": "Shashidhar",
+  "email": "",
+  "phone": "",
   "experience_years": 6,
   "current_title": "Senior QA Automation Engineer",
   "skills": [
@@ -50,9 +50,5 @@
       "title": "QA Engineer",
       "duration": "2019-2021"
     }
-  ],
-  "profile_source": {
-    "derived_from": "master_resume",
-    "ingested_at": "2026-07-18T19:59:03.644753+00:00"
-  }
+  ]
 }
