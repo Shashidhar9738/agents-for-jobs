@@ -1,0 +1,350 @@
+{
+  "name": "AI Job Application Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 9,
+              "minute": 0
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Daily Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        120,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const runId = `${Date.now()}`;\n\nreturn [{\n  runId,\n  generatedAt: new Date().toISOString(),\n  threshold: 80,\n  search: {\n    roles: ['Senior QA Engineer', 'SDET', 'QA Automation Engineer'],\n    requiredSkills: ['Selenium', 'Java', 'API Testing', 'JMeter'],\n    preferredSkills: ['Rest Assured', 'TestNG', 'Jenkins', 'SQL'],\n    locations: ['Remote', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune'],\n    excludeWords: ['intern', 'manual', 'support']\n  },\n  dataSources: {\n    // Replace with real sources in your environment\n    jobApiUrl: 'https://example.com/jobs',\n    appliedJobsCsvPath: 'output/AppliedJobs.csv'\n  },\n  profileSource: 'config/profile.json',\n  preferencesSource: 'config/preferences.json'\n}];"
+      },
+      "id": "3",
+      "name": "Init Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Placeholder job discovery node.\n// Replace this node with HTTP Request nodes for LinkedIn/Naukri/Indeed APIs or your own scraper service.\nconst ctx = $json;\n\nconst mockJobs = [\n  {\n    company: 'Contoso Tech',\n    role: 'Senior SDET',\n    location: 'Remote',\n    workMode: 'Remote',\n    url: 'https://example.com/job/1',\n    jd: 'Need Selenium, Java, API Testing, JMeter, CI/CD, Agile.',\n    source: 'MockSource',\n    postedDate: '2026-07-18'\n  },\n  {\n    company: 'Fabrikam Systems',\n    role: 'Manual QA Engineer',\n    location: 'Bangalore',\n    workMode: 'Hybrid',\n    url: 'https://example.com/job/2',\n    jd: 'Manual testing, support coordination, ticket handling.',\n    source: 'MockSource',\n    postedDate: '2026-07-18'\n  },\n  {\n    company: 'Northwind Labs',\n    role: 'QA Automation Engineer',\n    location: 'Hyderabad',\n    workMode: 'Hybrid',\n    url: 'https://example.com/job/3',\n    jd: 'Selenium, Java, Rest Assured, API automation, Jenkins, SQL.',\n    source: 'MockSource',\n    postedDate: '2026-07-17'\n  }\n];\n\nreturn mockJobs.map((job) => ({\n  ...ctx,\n  job\n}));"
+      },
+      "id": "4",
+      "name": "Discover Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        590,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Exclude intern/manual/support-like roles and keep target locations.\nconst { job, search } = $json;\nconst text = `${job.role} ${job.jd}`.toLowerCase();\n\nconst excluded = search.excludeWords.some((w) => text.includes(w));\nconst locationAllowed = search.locations.map((x) => x.toLowerCase()).includes(job.location.toLowerCase()) || job.workMode.toLowerCase() === 'remote';\n\nif (excluded || !locationAllowed) {\n  return [];\n}\n\nreturn [{ ...$json }];"
+      },
+      "id": "5",
+      "name": "Filter Roles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        810,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Placeholder duplicate check.\n// Replace this with Data Store, SQLite, or CSV lookup against output/AppliedJobs.csv.\nconst key = `${$json.job.company}::${$json.job.role}::${$json.job.location}`.toLowerCase();\n\n// Mock previously applied keys\nconst applied = [\n  'sampleco::qa engineer::pune'\n];\n\nif (applied.includes(key)) {\n  return [];\n}\n\nreturn [{ ...$json, dedupeKey: key }];"
+      },
+      "id": "6",
+      "name": "Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1030,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Local scoring logic.\n// Replace with OpenAI scoring node if needed.\nconst required = $json.search.requiredSkills;\nconst preferred = $json.search.preferredSkills;\nconst jd = $json.job.jd.toLowerCase();\n\nlet score = 0;\nlet matches = [];\nlet gaps = [];\n\nfor (const skill of required) {\n  if (jd.includes(skill.toLowerCase())) {\n    score += 18;\n    matches.push(skill);\n  } else {\n    gaps.push(skill);\n  }\n}\n\nfor (const skill of preferred) {\n  if (jd.includes(skill.toLowerCase())) {\n    score += 4;\n    matches.push(skill);\n  }\n}\n\nif ($json.job.workMode.toLowerCase() === 'remote') score += 5;\nif (score > 100) score = 100;\n\nconst decision = score >= $json.threshold ? 'Apply' : 'Skip';\n\nreturn [{\n  ...$json,\n  matchScore: score,\n  decision,\n  scoreSummary: { matches, gaps }\n}];"
+      },
+      "id": "7",
+      "name": "Score Match",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.matchScore}}",
+              "operation": "largerEqual",
+              "value2": 80
+            }
+          ]
+        }
+      },
+      "id": "8",
+      "name": "Above Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1450,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build prompt payloads for resume and cover letter generation.\n// In production, send these to OpenAI/LLM nodes.\nconst promptBase = {\n  role: $json.job.role,\n  company: $json.job.company,\n  location: $json.job.location,\n  jd: $json.job.jd,\n  score: $json.matchScore\n};\n\nconst resumePrompt = [\n  'Optimize resume for ATS without inventing skills.',\n  `Role: ${promptBase.role}`,\n  `Company: ${promptBase.company}`,\n  `JD: ${promptBase.jd}`\n].join('\\n');\n\nconst coverLetterPrompt = [\n  'Generate a concise 220-320 word cover letter with factual claims only.',\n  `Role: ${promptBase.role}`,\n  `Company: ${promptBase.company}`,\n  `JD: ${promptBase.jd}`\n].join('\\n');\n\nreturn [{\n  ...$json,\n  prompts: { resumePrompt, coverLetterPrompt }\n}];"
+      },
+      "id": "9",
+      "name": "Create Content Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Placeholder generated assets.\n// Replace with LLM nodes and save output files by role/company.\nconst companySafe = $json.job.company.replace(/\\s+/g, '_');\nconst roleSafe = $json.job.role.replace(/\\s+/g, '_');\n\nreturn [{\n  ...$json,\n  tailoredResumePath: `output/resume_${companySafe}_${roleSafe}.md`,\n  coverLetterPath: `output/cover_${companySafe}_${roleSafe}.md`,\n  applicationStatus: 'ReadyToApply'\n}];"
+      },
+      "id": "10",
+      "name": "Generate Assets Placeholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Optional auto-apply integration point.\n// Replace with HTTP Request to your Playwright microservice, or keep manual.\n\nreturn [{\n  ...$json,\n  applicationStatus: 'Applied',\n  applicationMode: 'ManualOrService',\n  appliedAt: new Date().toISOString()\n}];"
+      },
+      "id": "11",
+      "name": "Apply Step Placeholder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create interview prep prompt after successful application.\nconst interviewPrompt = [\n  'Generate interview prep for this role.',\n  `Company: ${$json.job.company}`,\n  `Role: ${$json.job.role}`,\n  `JD: ${$json.job.jd}`,\n  `MatchScore: ${$json.matchScore}`\n].join('\\n');\n\nreturn [{\n  ...$json,\n  interviewPrompt\n}];"
+      },
+      "id": "12",
+      "name": "Interview Prep Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2310,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Logging record structure.\n// Replace with CSV append, Google Sheets, Data Store, or SQLite write nodes.\nreturn [{\n  runId: $json.runId,\n  date: new Date().toISOString(),\n  company: $json.job.company,\n  role: $json.job.role,\n  location: $json.job.location,\n  jobUrl: $json.job.url,\n  source: $json.job.source,\n  matchScore: $json.matchScore,\n  status: $json.applicationStatus || 'Applied',\n  reason: 'Meets threshold and passed filters',\n  resumeVersion: $json.tailoredResumePath || '',\n  coverLetterVersion: $json.coverLetterPath || '',\n  notes: 'Replace this node with real output/AppliedJobs.csv append.'\n}];"
+      },
+      "id": "13",
+      "name": "Log Applied",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Skipped branch log.\nreturn [{\n  runId: $json.runId,\n  date: new Date().toISOString(),\n  company: $json.job.company,\n  role: $json.job.role,\n  location: $json.job.location,\n  jobUrl: $json.job.url,\n  source: $json.job.source,\n  matchScore: $json.matchScore,\n  status: 'Skipped',\n  reason: `Below threshold ${$json.threshold}`,\n  notes: 'No apply action taken.'\n}];"
+      },
+      "id": "14",
+      "name": "Log Skipped",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        470
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Init Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Cron": {
+      "main": [
+        [
+          {
+            "node": "Init Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Init Context": {
+      "main": [
+        [
+          {
+            "node": "Discover Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discover Jobs": {
+      "main": [
+        [
+          {
+            "node": "Filter Roles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Roles": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate": {
+      "main": [
+        [
+          {
+            "node": "Score Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Match": {
+      "main": [
+        [
+          {
+            "node": "Above Threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Above Threshold?": {
+      "main": [
+        [
+          {
+            "node": "Create Content Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Content Prompts": {
+      "main": [
+        [
+          {
+            "node": "Generate Assets Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Assets Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Apply Step Placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Step Placeholder": {
+      "main": [
+        [
+          {
+            "node": "Interview Prep Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interview Prep Prompt": {
+      "main": [
+        [
+          {
+            "node": "Log Applied",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "7d18a7b5-46af-4dcf-a450-c20d8e496f8a",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "ai-job-application-agent",
+  "tags": []
+}

@@ -1,0 +1,30 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"c:\\\\Users\\\\shashidhar\\.yadala\\\\Videos\\\\auto apply the jobs\"; node -v; npm -v$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Test-Path": true,
+        "Get-Item": true,
+        "ForEach-Object": true,
+        "Get-Command": true,
+        "&": true,
+        "code": true,
+        "ConvertFrom-Json": true,
+        "Out-Null": true,
+        "/^powershell -ExecutionPolicy Bypass -File \\.\\\\auto-download-required-files\\.ps1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"if exist ONE_CLICK_DESKTOP_SETUP\\.cmd \\(echo FILE_OK\\) else \\(echo FILE_MISSING & exit /b 1\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git rev-parse": true,
+        "gh": true,
+        "winget": true,
+        "git init": true,
+        "git add": true,
+        "git commit": true
+    }
+}
