@@ -8,7 +8,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.agent_core.config_loader import ConfigValidationError, build_runtime_context
+from src.agent_core.config_loader import (
+    ConfigValidationError,
+    build_runtime_context,
+    persist_runtime_context,
+)
 
 
 def main() -> int:
@@ -20,8 +24,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--output",
-        help="Optional output path for generated context JSON",
-        default="logs/run_context.json",
+        help="Optional output path for generated context JSON. Defaults to a unique file in logs/.",
+        default=None,
     )
     args = parser.parse_args()
 
@@ -32,9 +36,7 @@ def main() -> int:
         print(f"[ERROR] {exc}")
         return 1
 
-    output_path = (repo_root / args.output).resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(context, indent=2), encoding="utf-8")
+    output_path = persist_runtime_context(repo_root, context, relative_output_path=args.output)
 
     print(f"[OK] Runtime context generated: {output_path}")
     print(f"[INFO] Candidate: {context['candidate_id']}")
