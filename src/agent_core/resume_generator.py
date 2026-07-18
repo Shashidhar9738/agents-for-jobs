@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
@@ -11,6 +11,9 @@ from pypdf import PdfReader
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
+
+from src.agent_core.ai_client import AIClient, AIClientError
+from src.agent_core.prompt_loader import PromptLoadError, collect_prompt_versions, load_prompt
 
 
 class ResumeGenerationError(ValueError):
@@ -23,6 +26,9 @@ class ResumeGenerationResult:
     resume_json_path: Path
     resume_docx_path: Path
     resume_pdf_path: Path
+    generation_mode: str = "deterministic"
+    prompt_versions: Dict[str, Any] = field(default_factory=dict)
+    model_usage: Dict[str, Any] = field(default_factory=dict)
 
 
 def generate_resume_bundle(
@@ -64,6 +70,30 @@ def generate_resume_bundle(
         metadata=metadata,
         jd_text=jd_text,
     )
+
+    # Deterministic output above is the always-available baseline. When a provider
+    # credential is configured, the model refines it; any failure keeps the baseline
+    # so a run never aborts on provider trouble (spec section 14).
+    generation_mode = "deterministic"
+    prompt_versions: Dict[str, Any] = {}
+    model_usage: Dict[str, Any] = {}
+
+    ai_outcome = _apply_ai_tailoring(
+        repo_root=repo_root,
+        run_context=run_context,
+        baseline_resume_json=resume_json,
+        master_resume_text=master_resume_text,
+        candidate_profile=candidate_profile,
+        metadata=metadata,
+        jd_text=jd_text,
+    )
+    if ai_outcome is not None:
+        resume_json, generation_mode, prompt_versions, model_usage = ai_outcome
+
+    resume_json["generation_mode"] = generation_mode
+    resume_json["prompt_versions"] = prompt_versions
+    resume_json["model_usage"] = model_usage
+
     _validate_resume_integrity(resume_json, candidate_profile, master_resume_text)
     _validate_one_page_rule(resume_json)
 
@@ -82,6 +112,9 @@ def generate_resume_bundle(
         resume_json_path=resume_json_path,
         resume_docx_path=resume_docx_path,
         resume_pdf_path=resume_pdf_path,
+        generation_mode=generation_mode,
+        prompt_versions=prompt_versions,
+        model_usage=model_usage,
     )
 
 
@@ -174,6 +207,178 @@ def _build_resume_json(
             "max_lines": 55,
         },
     }
+
+
+def _apply_ai_tailoring(
+    repo_root: Path,
+    run_context: Dict[str, Any],
+    baseline_resume_json: Dict[str, Any],
+    master_resume_text: str,
+    candidate_profile: Dict[str, Any],
+    metadata: Dict[str, Any],
+    jd_text: str,
+) -> Tuple[Dict[str, Any], str, Dict[str, Any], Dict[str, Any]] | None:
+    """Refine the deterministic resume with the configured model.
+
+    Returns None when the model is unavailable, errors, or produces output that
+    fails the no-fabrication guardrails - the caller then keeps the baseline.
+    """
+    try:
+        client = AIClient.from_run_context(run_context)
+    except AIClientError:
+        return None
+
+    if not client.available:
+        return None
+
+    try:
+        system_prompt = load_prompt(repo_root, "system")
+        builder_prompt = load_prompt(repo_root, "resume_builder")
+    except PromptLoadError:
+        return None
+
+    user_prompt = _build_resume_user_prompt(
+        builder_prompt_text=builder_prompt.text,
+        baseline_resume_json=baseline_resume_json,
+        master_resume_text=master_resume_text,
+        candidate_profile=candidate_profile,
+        metadata=metadata,
+        jd_text=jd_text,
+    )
+
+    try:
+        response = client.complete_json(
+            system_prompt=system_prompt.text,
+            user_prompt=user_prompt,
+            purpose="wf03_resume_tailoring",
+        )
+    except AIClientError:
+        return None
+
+    if not response.data:
+        return None
+
+    merged = _merge_ai_resume(baseline_resume_json, response.data, candidate_profile)
+    if not _is_grounded(merged, master_resume_text, candidate_profile):
+        return None
+
+    prompt_versions = collect_prompt_versions(system_prompt, builder_prompt)
+    return merged, "ai", prompt_versions, client.usage.as_metadata()
+
+
+def _build_resume_user_prompt(
+    builder_prompt_text: str,
+    baseline_resume_json: Dict[str, Any],
+    master_resume_text: str,
+    candidate_profile: Dict[str, Any],
+    metadata: Dict[str, Any],
+    jd_text: str,
+) -> str:
+    allowed_skills = _normalize_string_list(candidate_profile.get("skills"))
+    return "\n\n".join(
+        [
+            builder_prompt_text,
+            "## Master Resume (immutable source of truth)\n" + master_resume_text,
+            "## Job Description\n" + jd_text,
+            "## Target Role Metadata\n" + json.dumps(
+                {
+                    "company": metadata.get("company", ""),
+                    "role_title": metadata.get("role_title", ""),
+                    "location": metadata.get("location", ""),
+                },
+                indent=2,
+            ),
+            "## Verified Candidate Skills (you may ONLY reorder or subset this list)\n"
+            + json.dumps(allowed_skills, indent=2),
+            "## Deterministic Baseline (improve wording; do not add facts)\n"
+            + json.dumps(
+                {
+                    key: baseline_resume_json.get(key)
+                    for key in (
+                        "updated_professional_summary",
+                        "updated_skills_order",
+                        "rewritten_experience_project_bullets",
+                        "match_keywords_found",
+                        "remaining_gaps",
+                    )
+                },
+                indent=2,
+            ),
+            "## Required Output\n"
+            "Return a single JSON object with exactly these keys: "
+            "updated_professional_summary (string), updated_skills_order (array of strings "
+            "drawn only from the verified skills list), rewritten_experience_project_bullets "
+            "(array of strings, each traceable to the master resume), match_keywords_found "
+            "(array of strings), remaining_gaps (array of strings), estimated_ats_improvement "
+            "(one of High, Medium, Low). Never invent employers, dates, metrics, certifications, "
+            "or numbers that are absent from the master resume.",
+        ]
+    )
+
+
+def _merge_ai_resume(
+    baseline_resume_json: Dict[str, Any],
+    ai_data: Dict[str, Any],
+    candidate_profile: Dict[str, Any],
+) -> Dict[str, Any]:
+    merged = dict(baseline_resume_json)
+
+    summary = str(ai_data.get("updated_professional_summary", "")).strip()
+    if summary:
+        merged["updated_professional_summary"] = summary
+
+    # Skills are constrained to the verified profile list; anything else is dropped.
+    allowed = {skill.lower(): skill for skill in _normalize_string_list(candidate_profile.get("skills"))}
+    ai_skills = [
+        allowed[skill.lower()]
+        for skill in _normalize_string_list(ai_data.get("updated_skills_order"))
+        if skill.lower() in allowed
+    ]
+    if ai_skills:
+        merged["updated_skills_order"] = ai_skills
+
+    bullets = _normalize_string_list(ai_data.get("rewritten_experience_project_bullets"))
+    if bullets:
+        merged["rewritten_experience_project_bullets"] = bullets[:6]
+
+    for key in ("match_keywords_found", "remaining_gaps"):
+        values = _normalize_string_list(ai_data.get(key))
+        if values:
+            merged[key] = values
+
+    ats = str(ai_data.get("estimated_ats_improvement", "")).strip().title()
+    if ats in {"High", "Medium", "Low"}:
+        merged["estimated_ats_improvement"] = ats
+
+    merged["changes_made"] = _build_changes(
+        candidate_profile,
+        merged.get("updated_skills_order", []),
+        merged.get("updated_professional_summary", ""),
+    )
+    return merged
+
+
+def _is_grounded(
+    resume_json: Dict[str, Any],
+    master_resume_text: str,
+    candidate_profile: Dict[str, Any],
+) -> bool:
+    """Reject model output that introduces numbers absent from verified sources.
+
+    Fabricated metrics are the most common and most damaging failure mode, so every
+    number in generated prose must trace back to the master resume or the profile.
+    """
+    source_text = master_resume_text + " " + json.dumps(candidate_profile)
+    source_numbers = set(re.findall(r"\d+", source_text))
+
+    generated_segments = [str(resume_json.get("updated_professional_summary", ""))]
+    generated_segments.extend(str(bullet) for bullet in resume_json.get("rewritten_experience_project_bullets", []))
+
+    for segment in generated_segments:
+        for number in re.findall(r"\d+", segment):
+            if number not in source_numbers:
+                return False
+    return True
 
 
 def _extract_target_keywords(
