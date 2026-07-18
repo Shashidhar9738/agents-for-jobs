@@ -18,19 +18,19 @@ echo.
 
 if not exist "!N8N_HOME!" mkdir "!N8N_HOME!"
 
-rem --- Detect a supported Node version (22 or 20)
+rem --- Detect a supported Node version (prefer 20, then 22)
 set "NODE_EXE="
-
-for /d %%P in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\OpenJS.NodeJS.22_*") do (
-  if exist "%%P\node-v22.23.1-win-x64\node.exe" (
-    set "NODE_EXE=%%P\node-v22.23.1-win-x64\node.exe"
-    goto :found_node
-  )
-)
 
 for /d %%P in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\OpenJS.NodeJS.20_*") do (
   if exist "%%P\node-v20.20.2-win-x64\node.exe" (
     set "NODE_EXE=%%P\node-v20.20.2-win-x64\node.exe"
+    goto :found_node
+  )
+)
+
+for /d %%P in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\OpenJS.NodeJS.22_*") do (
+  if exist "%%P\node-v22.23.1-win-x64\node.exe" (
+    set "NODE_EXE=%%P\node-v22.23.1-win-x64\node.exe"
     goto :found_node
   )
 )
@@ -57,6 +57,12 @@ if not defined NODE_EXE (
 
 echo [INFO] Using node: !NODE_EXE!
 "!NODE_EXE!" -v
+
+for %%I in ("!NODE_EXE!") do set "NODE_DIR=%%~dpI"
+set "PATH=!NODE_DIR!;!PATH!"
+
+set "NPM_CMD=!NODE_DIR!npm.cmd"
+if not exist "!NPM_CMD!" set "NPM_CMD=npm"
 
 set "SYSTEM_CMD=C:\Windows\System32\cmd.exe"
 set "ComSpec=!SYSTEM_CMD!"
@@ -88,35 +94,29 @@ if "!NEEDS_INSTALL!"=="1" (
   pushd "!N8N_HOME!"
   set "npm_config_strict_ssl=false"
   set "NODE_TLS_REJECT_UNAUTHORIZED=0"
+  set "npm_config_ignore_scripts=true"
 
-  npm install n8n@1.50.0 --legacy-peer-deps --no-audit --no-fund --loglevel=warn >>!LOGFILE! 2>&1
+  call "!NPM_CMD!" install n8n@1.50.0 --legacy-peer-deps --no-audit --no-fund --ignore-scripts --loglevel=warn >>!LOGFILE! 2>&1
   set "INSTALL_EXIT=!ERRORLEVEL!"
   popd
 
   if not "!INSTALL_EXIT!"=="0" (
     echo.
-    echo [ERROR] n8n install failed. Last 30 lines:
+    echo [WARN] npm install failed - trying npx fallback...
     echo.
-    if exist "!LOGFILE!" (
-      powershell -NoProfile -Command "Get-Content '!LOGFILE!' -Tail 30"
-    ) else (
-      echo (log file not found at !LOGFILE!^)
-    )
-    echo.
-    pause
-    exit /b 1
+    set "NEEDS_INSTALL=0"
+    set "USE_NPX=1"
+    goto :start_n8n
   )
 )
 
 if not exist "!N8N_BIN!" (
   echo.
-  echo [ERROR] n8n launcher not found at: !N8N_BIN!
-  echo [INFO] Try: delete !N8N_HOME! and run this script again
-  echo.
-  pause
-  exit /b 1
+  echo [WARN] n8n binary not at expected path, using npx fallback.
+  set "USE_NPX=1"
 )
 
+:start_n8n
 echo.
 echo [INFO] Starting n8n...
 echo [INFO] URL    : http://192.168.29.164:5678/
@@ -136,6 +136,14 @@ set "WEBHOOK_URL=http://192.168.29.164:5678/"
 set "N8N_BASIC_AUTH_USER=Shashi.shashi727@gmail.com"
 set "N8N_BASIC_AUTH_PASSWORD=Aishu@@9738082343"
 
-call "!N8N_BIN!"
+if defined USE_NPX (
+  echo [INFO] Launching via: npx n8n@1.50.0 start
+  "!NODE_EXE!" "!NODE_DIR!node_modules\npm\bin\npx-cli.js" n8n@1.50.0 start
+  if errorlevel 1 (
+    "!NODE_DIR!npx.cmd" --yes n8n@1.50.0 start
+  )
+) else (
+  call "!N8N_BIN!"
+)
 pause
 exit /b 0
