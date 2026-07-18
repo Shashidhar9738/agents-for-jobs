@@ -26,5 +26,9 @@
     "linkedin": "",
     "github": "",
     "portfolio": ""
+  },
+  "resume": {
+    "master_pdf": "data/candidates/shashi/resume/resume_master.pdf",
+    "base_folder": "data/candidates/shashi/resume"
   }
 }
