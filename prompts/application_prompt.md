@@ -8,7 +8,9 @@ Fill job applications using profile data, upload tailored documents, and log out
 
 ## Inputs
 
-- Candidate profile: `config/profile.json`
+- Candidate context from `config/workspace.json` (`active_candidate`)
+- Candidate profile: `config/candidates/<candidate_id>/profile.json`
+- Candidate preferences: `config/candidates/<candidate_id>/preferences.json`
 - Tailored resume version for this job
 - Cover letter version for this job
 - Job details and URL
@@ -21,6 +23,7 @@ Fill job applications using profile data, upload tailored documents, and log out
 4. Upload tailored cover letter when requested.
 5. Review all required fields before submit.
 6. Stop and ask for confirmation before final submission when confidence is low.
+7. Ensure all submitted details belong to the active candidate only.
 
 ## Field Mapping Rules
 
@@ -41,6 +44,7 @@ Fill job applications using profile data, upload tailored documents, and log out
 
 Return a short structured summary:
 
+- CandidateId
 - Job: company + role
 - Status: Applied / Draft Saved / Failed / Skipped
 - Submission time
@@ -50,4 +54,4 @@ Return a short structured summary:
 
 ## Logging
 
-Append/update `output/AppliedJobs.csv` with the final status and reason.
+Append/update `output/<candidate_id>/AppliedJobs.csv` with the final status and reason.

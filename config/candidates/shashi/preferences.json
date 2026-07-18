@@ -1,0 +1,23 @@
+{
+  "minimum_match": 80,
+  "auto_apply": false,
+  "target_roles": [
+    "Senior QA Engineer",
+    "SDET",
+    "Automation Test Engineer",
+    "QA Automation Engineer"
+  ],
+  "locations": [
+    "Remote",
+    "Bangalore",
+    "Hyderabad",
+    "Chennai",
+    "Pune"
+  ],
+  "exclude_keywords": [
+    "intern",
+    "manual testing",
+    "technical support",
+    "customer support"
+  ]
+}

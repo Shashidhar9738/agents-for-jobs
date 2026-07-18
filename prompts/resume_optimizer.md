@@ -2,6 +2,11 @@
 
 Tailor resume content for a specific job description while preserving factual accuracy.
 
+Candidate source:
+- Active candidate from `config/workspace.json`
+- Profile: `config/candidates/<candidate_id>/profile.json`
+- Resume PDF source: `data/candidates/<candidate_id>/resume/resume_master.pdf`
+
 ## Objective
 
 Improve relevance and ATS compatibility for the target role without introducing false claims.
@@ -11,6 +16,7 @@ Improve relevance and ATS compatibility for the target role without introducing 
 - Do not invent any skill, project, metric, certification, or responsibility.
 - Do not change employment dates, titles, or employers unless explicitly provided.
 - Keep claims defensible in interviews.
+- Do not use details from any other candidate.
 
 ## Optimization Tasks
 

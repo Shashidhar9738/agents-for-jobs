@@ -1,1 +1,5 @@
-{"minimum_match":80,"locations":["Remote","Bangalore","Hyderabad","Chennai","Pune"],"auto_apply":true}
+{
+	"deprecated_notice": "Use config/workspace.json + config/candidates/<candidate_id>/preferences.json",
+	"active_candidate": "shashi",
+	"source_preferences": "config/candidates/shashi/preferences.json"
+}

@@ -1,0 +1,34 @@
+{
+  "minimum_match": 80,
+  "auto_apply": false,
+  "target_roles": [
+    ""
+  ],
+  "required_keywords": [
+    ""
+  ],
+  "preferred_keywords": [
+    ""
+  ],
+  "locations": [
+    "Remote"
+  ],
+  "work_modes": [
+    "Remote",
+    "Hybrid",
+    "Onsite"
+  ],
+  "min_experience_years": 0,
+  "max_experience_years": 20,
+  "exclude_keywords": [
+    "intern",
+    "unpaid"
+  ],
+  "platforms": [
+    "LinkedIn",
+    "Naukri",
+    "Indeed"
+  ],
+  "daily_application_limit": 15,
+  "allow_easy_apply_only": false
+}

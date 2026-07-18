@@ -1,7 +1,7 @@
 # Agent Task Specification
 
 Goal:
-Create an AI agent using LangGraph + Playwright + OpenAI API.
+Create a dual-candidate AI agent using LangGraph + Playwright + OpenAI API.
 
 Modules:
 1. Job discovery
@@ -12,9 +12,10 @@ Modules:
 6. Browser automation
 7. Application tracking
 8. Notifications
+9. Candidate switching (Shashidhar / Aishwarya)
 
 Workflow:
-Search -> Score -> Optimize Resume -> Cover Letter -> Apply -> Log -> Notify.
+Select Candidate -> Search -> Score -> Optimize Resume -> Cover Letter -> Apply -> Log -> Notify.
 
 Requirements:
 - Never fabricate information.
@@ -23,3 +24,5 @@ Requirements:
 - Support LinkedIn Easy Apply where permitted and configurable.
 - Store history in SQLite and CSV.
 - Modular architecture with tests and logging.
+- Support separate profiles/preferences/resume PDFs per candidate.
+- Write application logs to candidate-specific tracker files.

@@ -1,69 +1,53 @@
 # Prompt: Job Search and Shortlist
 
-Search for jobs using the following constraints.
+Use this prompt for the active candidate from `config/workspace.json`.
 
-## Target Roles
+## Candidate Context
 
-- Senior QA Engineer
-- SDET
-- Automation Test Engineer
-- QA Automation Engineer
+1. Read `active_candidate` from `config/workspace.json`.
+2. Load:
+	- `config/candidates/<candidate_id>/profile.json`
+	- `config/candidates/<candidate_id>/preferences.json`
 
-## Required Skill Keywords
+Use those files as the only source for role targets, skills, and exclusions.
 
-- Selenium
-- Java
-- API Testing
-- JMeter
-- Test Automation Frameworks
+## Search Constraints
 
-## Preferred Additional Keywords
-
-- Rest Assured
-- TestNG or JUnit
-- CI/CD
-- Jenkins
-- SQL
-- Agile
-
-## Locations and Work Mode
-
-- Remote
-- Bangalore
-- Hyderabad
-- Chennai
-- Pune
-
-## Exclusion Criteria
-
-- Intern or Internship roles
-- Manual testing only roles
-- Technical support or customer support roles
-- Positions with no automation requirement
-
-## Seniority and Experience
-
-- Mid-Senior to Senior preferred
-- Ignore fresher-only or 0-1 year roles
+- Target roles: `target_roles`
+- Required keywords: `required_keywords`
+- Preferred keywords: `preferred_keywords`
+- Locations: `locations`
+- Work modes: `work_modes`
+- Experience range: `min_experience_years` to `max_experience_years`
+- Exclusions: `exclude_keywords`
+- Minimum score: `minimum_match`
 
 ## Output Format
 
-For each job, return:
+For each job return:
 
-1. Company
-2. Role title
-3. Location
-4. Work mode (Remote/Hybrid/Onsite)
-5. Job URL
-6. Source platform
-7. Posted date (if available)
-8. Key required skills
-9. Quick fit summary (2-3 lines)
-10. Match score (0-100)
-11. Decision (`Apply` or `Skip`)
-12. Skip reason (if skipped)
+1. CandidateId
+2. Company
+3. RoleTitle
+4. Location
+5. WorkMode
+6. JobURL
+7. Source
+8. PostedDate
+9. KeyRequiredSkills
+10. FitSummary
+11. MatchScore (0-100)
+12. Decision (`Apply` / `Skip` / `Review`)
+13. Reason
 
-## Decision Rule
+## Decision Rules
 
-- Apply only when score >= configured threshold (default 80).
-- If mandatory requirements are unclear, mark as `Review` before applying.
+- Apply only when `MatchScore >= minimum_match` and critical requirements are satisfied.
+- If critical requirement is unclear, mark `Review`.
+- If below threshold, mark `Skip` with exact reason.
+
+## Integrity Rules
+
+- No fabricated facts.
+- No candidate mixing.
+- Keep reasons concise and evidence-based.

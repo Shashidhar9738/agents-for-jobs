@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "active_candidate": "shashi",
+  "candidates": {
+    "shashi": {
+      "display_name": "Shashidhar",
+      "profile_path": "config/candidates/shashi/profile.json",
+      "preferences_path": "config/candidates/shashi/preferences.json",
+      "resume_folder": "data/candidates/shashi/resume",
+      "tracker_csv": "output/shashi/AppliedJobs.csv"
+    },
+    "aishwarya": {
+      "display_name": "Aishwarya",
+      "profile_path": "config/candidates/aishwarya/profile.json",
+      "preferences_path": "config/candidates/aishwarya/preferences.json",
+      "resume_folder": "data/candidates/aishwarya/resume",
+      "tracker_csv": "output/aishwarya/AppliedJobs.csv"
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "Aishwarya",
+  "email": "",
+  "phone": "",
+  "experience_years": 0,
+  "current_title": "",
+  "summary": "",
+  "skills": [
+    ""
+  ],
+  "primary_domains": [
+    ""
+  ],
+  "locations": [
+    "Remote"
+  ],
+  "work_modes": [
+    "Remote",
+    "Hybrid",
+    "Onsite"
+  ],
+  "education": [
+    {
+      "degree": "",
+      "specialization": "",
+      "institution": "",
+      "year": ""
+    }
+  ],
+  "experience": [
+    {
+      "company": "",
+      "role": "",
+      "start": "",
+      "end": "",
+      "highlights": [
+        ""
+      ]
+    }
+  ],
+  "certifications": [
+    ""
+  ],
+  "links": {
+    "linkedin": "",
+    "github": "",
+    "portfolio": ""
+  },
+  "job_preferences": {
+    "notice_period": "",
+    "current_ctc": "",
+    "expected_ctc": "",
+    "work_authorization": "",
+    "relocation": ""
+  },
+  "resume": {
+    "master_pdf": "data/candidates/aishwarya/resume/resume_master.pdf",
+    "base_folder": "data/candidates/aishwarya/resume"
+  }
+}

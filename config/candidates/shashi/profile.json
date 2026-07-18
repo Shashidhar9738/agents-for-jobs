@@ -1,0 +1,30 @@
+{
+  "name": "Shashidhar",
+  "email": "",
+  "phone": "",
+  "experience_years": 6,
+  "current_title": "Senior QA Engineer",
+  "skills": [
+    "Java",
+    "Selenium",
+    "TestNG",
+    "Rest Assured",
+    "JMeter",
+    "API Testing",
+    "SQL",
+    "Jenkins",
+    "Git"
+  ],
+  "locations": [
+    "Remote",
+    "Bangalore",
+    "Hyderabad",
+    "Chennai",
+    "Pune"
+  ],
+  "links": {
+    "linkedin": "",
+    "github": "",
+    "portfolio": ""
+  }
+}

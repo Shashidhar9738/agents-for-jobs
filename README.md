@@ -1,81 +1,78 @@
-# AI Job Application Agent
+# AI Job Application Agent (Dual Candidate)
 
-An automation-ready workspace for searching jobs, scoring fit, generating tailored application assets, and tracking submissions with strict honesty rules.
+Automation-ready workspace for two candidates (Shashidhar and Aishwarya) to search, score, tailor, and track job applications with strict honesty and no-fabrication rules.
 
 ## What This Project Does
 
-This repository is designed for an agentic workflow that:
+1. Finds relevant jobs per candidate profile and preferences.
+2. Extracts and normalizes JD content.
+3. Calculates transparent match scores.
+4. Tailors resume content safely for ATS alignment.
+5. Generates concise, truthful cover letters.
+6. Assists with application execution.
+7. Logs each application by candidate.
+8. Generates interview prep for submitted applications.
 
-1. Finds relevant jobs based on role, skills, and location filters.
-2. Extracts and normalizes job descriptions.
-3. Scores each role against your profile.
-4. Tailors resume content for ATS alignment.
-5. Generates a concise, truthful cover letter.
-6. Assists with application submission steps.
-7. Logs all applications and outcomes.
-8. Generates interview prep notes for each applied role.
+## Candidate-Aware Structure
 
-## Project Structure
-
-- `config/preferences.json`: Search and workflow preferences.
-- `config/profile.json`: Candidate profile data used by prompts.
-- `data/`: Input data (optional source files and intermediate data).
-- `output/AppliedJobs.csv`: Application tracking output.
-- `prompts/`: Prompt templates used by the agent.
-- `TASK_SPEC.md`: High-level implementation requirements.
+- `config/workspace.json`: Candidate registry and active candidate.
+- `config/candidates/shashi/profile.json`: Shashidhar profile.
+- `config/candidates/shashi/preferences.json`: Shashidhar search preferences.
+- `config/candidates/aishwarya/profile.json`: Aishwarya profile.
+- `config/candidates/aishwarya/preferences.json`: Aishwarya search preferences.
+- `data/candidates/shashi/resume/`: Shashidhar resume PDFs.
+- `data/candidates/aishwarya/resume/`: Aishwarya resume PDFs.
+- `output/shashi/AppliedJobs.csv`: Shashidhar tracker.
+- `output/aishwarya/AppliedJobs.csv`: Aishwarya tracker.
+- `prompts/`: Reusable prompts for both candidates.
+- `TASK_SPEC.md`: Workflow and implementation requirements.
 
 ## Prompt Files
 
-- `prompts/system_prompt.md`: Core agent behavior and constraints.
-- `prompts/job_search_prompt.md`: Job discovery query and filters.
-- `prompts/application_prompt.md`: Form-filling and submission behavior.
-- `prompts/resume_optimizer.md`: Resume tailoring prompt.
-- `prompts/cover_letter.md`: Cover letter generation prompt.
-- `prompts/interview_prep.md`: Post-application interview prep prompt.
+- `prompts/system_prompt.md`
+- `prompts/job_search_prompt.md`
+- `prompts/application_prompt.md`
+- `prompts/resume_optimizer.md`
+- `prompts/cover_letter.md`
+- `prompts/interview_prep.md`
 
-## Operating Principles
+## Setup Checklist (For Both Users)
 
-- Never fabricate skills, experience, projects, certifications, or outcomes.
-- Apply only when match score meets configured threshold.
-- Skip duplicate applications to the same company-role combination.
-- Exclude irrelevant roles (intern, manual-only, support-only, etc.).
-- Keep all generated content concise, role-relevant, and truthful.
+1. Fill profile files:
+	- `config/candidates/shashi/profile.json`
+	- `config/candidates/aishwarya/profile.json`
+2. Fill preference files:
+	- `config/candidates/shashi/preferences.json`
+	- `config/candidates/aishwarya/preferences.json`
+3. Place resume PDFs:
+	- `data/candidates/shashi/resume/resume_master.pdf`
+	- `data/candidates/aishwarya/resume/resume_master.pdf`
+4. Update `config/workspace.json` -> `active_candidate` to run one candidate at a time.
 
-## Recommended Workflow
+## Operating Rules
 
-1. Update `config/profile.json` with your latest profile details.
-2. Update `config/preferences.json` with role, location, and filter settings.
-3. Run job discovery and extract structured JD data.
-4. Score jobs and keep only entries meeting threshold.
-5. Generate tailored resume updates and cover letter.
-6. Submit applications (manual assist or automated where allowed).
-7. Append each attempt to `output/AppliedJobs.csv`.
-8. Generate interview prep notes for submitted applications.
+- Never fabricate skills, experience, projects, dates, or outcomes.
+- Skip jobs below threshold.
+- Skip duplicates (company + role + location + candidate).
+- Keep generated text concise, role-specific, and factual.
+- Confirm before irreversible submit actions when confidence is low.
 
-## Tracking Fields (Suggested)
+## Suggested Run Flow
 
-Use these columns in `output/AppliedJobs.csv`:
+1. Select candidate via `config/workspace.json`.
+2. Run job discovery using candidate preferences.
+3. Score and filter by minimum match.
+4. Generate resume-tailored bullets and cover letter.
+5. Apply manually/assisted.
+6. Write results to candidate-specific `AppliedJobs.csv`.
+7. Generate interview prep for applied jobs.
 
-- `Date`
-- `Company`
-- `Role`
-- `Location`
-- `JobURL`
-- `Source`
-- `MatchScore`
-- `Status` (Applied / Skipped / Failed / Pending)
-- `Reason`
-- `ResumeVersion`
-- `CoverLetterVersion`
-- `FollowUpDate`
-- `Notes`
+## Tracker Columns
 
-## Safety and Compliance
+`Date,CandidateId,Company,Role,Location,JobURL,Source,MatchScore,Status,Reason,ResumeVersion,CoverLetterVersion,FollowUpDate,Notes`
 
-- Respect platform terms of service and rate limits.
-- Keep personal data secure and do not expose sensitive credentials.
-- Prefer manual confirmation before final submission when uncertain.
+## Security Notes
 
-## Next Step
-
-Start by reviewing and customizing all templates in `prompts/` for your exact target roles and communication style.
+- Keep keys and secrets only in local `.env` and local credential JSON.
+- Do not commit secret files.
+- Respect platform ToS and rate limits.
