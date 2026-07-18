@@ -1,0 +1,295 @@
+{
+  "name": "AI Job Application Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "interval": [
+          1,
+          "days"
+        ]
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Daily Check",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "read",
+        "filePath": "/config/preferences.json"
+      },
+      "id": "read-preferences",
+      "name": "Load Preferences",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "credentials": {
+        "fileSystemAPI": "file-system"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "read",
+        "filePath": "/config/profile.json"
+      },
+      "id": "read-profile",
+      "name": "Load Profile",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "credentials": {
+        "fileSystemAPI": "file-system"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "chatId": "={{ $env.OPENAI_CHAT_ID }}",
+        "options": {
+          "model": "gpt-4"
+        }
+      },
+      "id": "openai-job-search",
+      "name": "OpenAI: Search & Score Jobs",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [
+        450,
+        450
+      ],
+      "credentials": {
+        "openAiApi": "openai-api"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "options": {
+          "model": "gpt-4"
+        }
+      },
+      "id": "openai-resume-tailor",
+      "name": "OpenAI: Tailor Resume",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [
+        650,
+        450
+      ],
+      "credentials": {
+        "openAiApi": "openai-api"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "options": {
+          "model": "gpt-4"
+        }
+      },
+      "id": "openai-cover-letter",
+      "name": "OpenAI: Generate Cover Letter",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [
+        850,
+        450
+      ],
+      "credentials": {
+        "openAiApi": "openai-api"
+      }
+    },
+    {
+      "parameters": {
+        "filePath": "/output/AppliedJobs.csv",
+        "fileFormat": "csv",
+        "columns": [
+          "Date",
+          "Company",
+          "Role",
+          "Location",
+          "JobURL",
+          "Source",
+          "MatchScore",
+          "Status",
+          "Reason",
+          "ResumeVersion",
+          "CoverLetterVersion",
+          "FollowUpDate",
+          "Notes"
+        ]
+      },
+      "id": "update-tracking-csv",
+      "name": "Update Application Tracker",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        850,
+        600
+      ],
+      "credentials": {
+        "fileSystemAPI": "file-system"
+      }
+    },
+    {
+      "parameters": {
+        "toEmail": "={{ $env.NOTIFICATION_EMAIL }}",
+        "subject": "Job Application Summary - {{ now.toFormat('yyyy-MM-dd') }}",
+        "textOnly": false,
+        "htmlContent": "<h3>Applications Submitted Today</h3><ul>{{ #each $json.applications }}<li>{{ this.company }} - {{ this.role }}</li>{{ /each }}</ul>"
+      },
+      "id": "send-email-notification",
+      "name": "Send Notification Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        600
+      ],
+      "credentials": {
+        "gmailOAuth2": "gmail-oauth"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.matchScore }}",
+              "operation": "gte",
+              "value2": "={{ $env.MINIMUM_MATCH_SCORE || 80 }}"
+            }
+          ]
+        }
+      },
+      "id": "check-threshold",
+      "name": "Match Score >= Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "read-preferences",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "read-profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read-preferences": {
+      "main": [
+        [
+          {
+            "node": "openai-job-search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read-profile": {
+      "main": [
+        [
+          {
+            "node": "openai-job-search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "openai-job-search": {
+      "main": [
+        [
+          {
+            "node": "check-threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-threshold": {
+      "main": [
+        [
+          {
+            "node": "openai-resume-tailor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "update-tracking-csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "openai-resume-tailor": {
+      "main": [
+        [
+          {
+            "node": "openai-cover-letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "openai-cover-letter": {
+      "main": [
+        [
+          {
+            "node": "update-tracking-csv",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update-tracking-csv": {
+      "main": [
+        [
+          {
+            "node": "send-email-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "versionId": "1"
+}
