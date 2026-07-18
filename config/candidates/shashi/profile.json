@@ -1,19 +1,21 @@
 {
-  "name": "Shashidhar",
-  "email": "",
-  "phone": "",
+  "name": "Shashidhar Yadala",
+  "email": "shashidhar.y@example.com",
+  "phone": "+919876543210",
   "experience_years": 6,
-  "current_title": "Senior QA Engineer",
+  "current_title": "Senior QA Automation Engineer",
   "skills": [
     "Java",
-    "Selenium",
+    "Selenium WebDriver",
     "TestNG",
     "Rest Assured",
-    "JMeter",
-    "API Testing",
-    "SQL",
+    "Postman",
     "Jenkins",
-    "Git"
+    "Git",
+    "SQL",
+    "JMeter",
+    "Cucumber",
+    "Maven"
   ],
   "locations": [
     "Remote",
@@ -30,5 +32,27 @@
   "resume": {
     "master_pdf": "data/candidates/shashi/resume/resume_master.pdf",
     "base_folder": "data/candidates/shashi/resume"
+  },
+  "education": [
+    "B.Tech Computer Science, JNTU Hyderabad, 2019"
+  ],
+  "certifications": [
+    "ISTQB Foundation Level"
+  ],
+  "work_history": [
+    {
+      "company": "Comviva Technologies",
+      "title": "Senior QA Engineer",
+      "duration": "2021-2026"
+    },
+    {
+      "company": "Infosys",
+      "title": "QA Engineer",
+      "duration": "2019-2021"
+    }
+  ],
+  "profile_source": {
+    "derived_from": "master_resume",
+    "ingested_at": "2026-07-18T19:59:03.644753+00:00"
   }
 }

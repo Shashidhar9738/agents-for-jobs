@@ -203,7 +203,7 @@ def _apply_ai_scoring(
         fit_summary = str(entry.get("fit_summary", "")).strip()
         if fit_summary:
             job["fit_summary"] = fit_summary
-        _reroute_after_blend(job, blended, minimum_match)
+        _reroute_after_blend(job, blended, minimum_match, semantic_score)
         applied_any = True
 
     if not applied_any:
@@ -213,11 +213,23 @@ def _apply_ai_scoring(
     return "ai_blended", prompt_versions, client.usage.as_metadata()
 
 
-def _reroute_after_blend(job: Dict[str, Any], blended_score: int, minimum_match: int) -> None:
+STRONG_SEMANTIC_MATCH = 90
+
+
+def _reroute_after_blend(
+    job: Dict[str, Any],
+    blended_score: int,
+    minimum_match: int,
+    semantic_score: int = 0,
+) -> None:
     """Re-apply routing thresholds to a blended score.
 
     Jobs missing required keywords stay capped at Review - the model may not
     promote them to Apply, since required keywords are an explicit candidate rule.
+
+    A very strong semantic match is never silently dropped. Keyword scoring can
+    miss a genuine fit when the JD and resume use different vocabulary, so those
+    jobs surface as Review for manual triage rather than being skipped.
     """
     if job.get("missing_required_keywords"):
         job["decision"] = "Review" if blended_score >= minimum_match else "Skip"
@@ -225,6 +237,15 @@ def _reroute_after_blend(job: Dict[str, Any], blended_score: int, minimum_match:
             f"Blended score {blended_score} with missing required keywords: "
             f"{', '.join(job['missing_required_keywords'][:3])}"
         )
+        return
+
+    if blended_score < minimum_match and semantic_score >= STRONG_SEMANTIC_MATCH:
+        job["decision"] = "Review"
+        job["reason"] = (
+            f"Strong semantic match ({semantic_score}) despite blended score {blended_score} "
+            f"below threshold {minimum_match} - flagged for manual review"
+        )
+        job["review_trigger"] = "strong_semantic_match"
         return
 
     if blended_score >= minimum_match:

@@ -8,6 +8,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from src.agent_core.bootstrap import init_runtime
+
+init_runtime(REPO_ROOT)
+
 from src.agent_core.config_loader import ConfigValidationError, build_runtime_context
 from src.agent_core.job_search import JobSearchError, run_job_search
 

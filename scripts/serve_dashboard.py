@@ -26,8 +26,13 @@ from urllib.parse import parse_qs, urlparse
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from src.agent_core.bootstrap import init_runtime
+
+init_runtime(REPO_ROOT)
+
 from src.agent_core.artifact_store import build_index  # noqa: E402
 from src.agent_core.config_loader import build_runtime_context  # noqa: E402
+from src.agent_core.resume_ingest import ingest_master_resume  # noqa: E402
 
 ALLOWED_RESUME_SUFFIXES = {".pdf", ".docx", ".txt", ".md"}
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
@@ -272,7 +277,31 @@ class DashboardHandler(BaseHTTPRequestHandler):
             destination.replace(archive / f"resume_master__{stamp}{suffix}")
 
         destination.write_bytes(payload)
-        self._send_json({"ok": True, "saved_to": str(destination), "size_bytes": len(payload)})
+
+        # The resume is the source of truth for the profile, so uploading it
+        # immediately re-derives skills, title, and contact details.
+        ingest_summary: Dict[str, Any] = {"ran": False}
+        try:
+            context = build_runtime_context(REPO_ROOT, candidate_override=candidate)
+            result = ingest_master_resume(REPO_ROOT, candidate, context)
+            ingest_summary = {
+                "ran": True,
+                "mode": result.extraction_mode,
+                "fields_updated": result.fields_updated,
+                "skills_found": result.skills_found,
+                "rejected_skills": result.rejected_skills,
+            }
+        except Exception as exc:  # Upload already succeeded; ingestion is best-effort.
+            ingest_summary = {"ran": False, "error": str(exc)}
+
+        self._send_json(
+            {
+                "ok": True,
+                "saved_to": str(destination),
+                "size_bytes": len(payload),
+                "ingest": ingest_summary,
+            }
+        )
 
     def _handle_run(self) -> None:
         candidate = (self._query().get("candidate") or [""])[0].strip()
