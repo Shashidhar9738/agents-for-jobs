@@ -109,15 +109,9 @@ if not exist "%WORKSPACE%\n8n\job-application-agent.workflow.json" (
 )
 
 call :info "Installing n8n"
-call :run "npm install -g n8n"
-if errorlevel 1 (
-  call :warn "Global n8n install failed; trying a workspace-local install instead"
-  call :run "npm install --prefix ""%WORKSPACE%\n8n"" n8n"
-  if errorlevel 1 goto :fail
-  set "N8N_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
-) else (
-  set "N8N_CMD=n8n"
-)
+call :run "npm install --prefix ""%WORKSPACE%\n8n"" n8n@1.85.1 --omit=optional"
+if errorlevel 1 goto :fail
+set "N8N_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
 
 call :info "Setting n8n environment for LAN access"
 set "N8N_HOST=0.0.0.0"
@@ -133,7 +127,7 @@ set "N8N_START_CMD=n8n"
 if exist "%APPDATA%\npm\n8n.cmd" set "N8N_START_CMD=%APPDATA%\npm\n8n.cmd"
 if exist "%ProgramFiles%\nodejs\n8n.cmd" set "N8N_START_CMD=%ProgramFiles%\nodejs\n8n.cmd"
 if exist "%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd" set "N8N_START_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
-start "n8n-server" cmd /k "set N8N_HOST=%N8N_HOST%&& set N8N_PORT=%N8N_PORT%&& set N8N_PROTOCOL=%N8N_PROTOCOL%&& set N8N_SECURE_COOKIE=%N8N_SECURE_COOKIE%&& set N8N_BASIC_AUTH_ACTIVE=%N8N_BASIC_AUTH_ACTIVE%&& set N8N_BASIC_AUTH_USER=%N8N_BASIC_AUTH_USER%&& set N8N_BASIC_AUTH_PASSWORD=%N8N_BASIC_AUTH_PASSWORD%&& "%N8N_START_CMD%""
+start "n8n-server" cmd /k "set N8N_HOST=%N8N_HOST%&& set N8N_PORT=%N8N_PORT%&& set N8N_PROTOCOL=%N8N_PROTOCOL%&& set N8N_SECURE_COOKIE=%N8N_SECURE_COOKIE%&& set N8N_BASIC_AUTH_ACTIVE=%N8N_BASIC_AUTH_ACTIVE%&& set N8N_BASIC_AUTH_USER=%N8N_BASIC_AUTH_USER%&& set N8N_BASIC_AUTH_PASSWORD=%N8N_BASIC_AUTH_PASSWORD%&& call "%N8N_START_CMD%""
 
 call :info "Setup completed successfully"
 echo.
