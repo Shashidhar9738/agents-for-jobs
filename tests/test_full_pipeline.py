@@ -23,16 +23,34 @@ class FullPipelineTests(unittest.TestCase):
             self.assertTrue(result.dashboard_summary_path.exists())
             self.assertEqual(result.processed_jobs, 1)
 
-            artifact_dir = result.wf02_output_dir / "job_artifacts" / "contoso_senior_qa_automation_engineer"
+            # Spec section 5 layout: Profiles/<candidate>/<profile>/<company>/<role>/
+            artifact_dir = (
+                root / "Profiles" / "shashi" / "QA_Automation_Engineer" / "Contoso" / "Senior_QA_Automation_Engineer"
+            )
+            self.assertTrue(artifact_dir.exists(), f"expected spec artifact folder at {artifact_dir}")
+            self.assertTrue((artifact_dir / "JD.txt").exists())
+            self.assertTrue((artifact_dir / "metadata.json").exists())
             self.assertTrue((artifact_dir / "Resume.pdf").exists())
+            self.assertTrue((artifact_dir / "Resume.docx").exists())
             self.assertTrue((artifact_dir / "CoverLetter.pdf").exists())
             self.assertTrue((artifact_dir / "Application.json").exists())
             self.assertTrue((artifact_dir / "NotificationLog.json").exists())
+            self.assertTrue((artifact_dir / "Logs.txt").exists())
             self.assertFalse((artifact_dir / "InterviewQuestions.pdf").exists())
+
+            # The immutable master resume is copied in for side-by-side review.
+            self.assertTrue(list(artifact_dir.glob("MasterResume.*")))
 
             dashboard = json.loads(result.dashboard_summary_path.read_text(encoding="utf-8"))
             self.assertEqual(dashboard["jobs_found"], 1)
             self.assertEqual(dashboard["prepared"], 1)
+
+            self.assertIsNotNone(result.artifact_index_path)
+            index = json.loads(result.artifact_index_path.read_text(encoding="utf-8"))
+            self.assertEqual(index["total_targets"], 1)
+            target = index["targets"][0]
+            self.assertEqual(target["company"], "Contoso")
+            self.assertIn("Logs.txt", [item["name"] for item in target["files"]])
 
     def _write_workspace(self, root: Path) -> None:
         (root / "config" / "candidates" / "shashi").mkdir(parents=True)

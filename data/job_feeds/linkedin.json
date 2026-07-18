@@ -1,0 +1,27 @@
+[
+  {
+    "role_title": "Senior SDET",
+    "company": "Nimbus Telecom",
+    "location": "Remote - India",
+    "job_url": "https://example.com/jobs/sdet-1",
+    "job_description": "Senior SDET to own end-to-end automation. Required: Java, Selenium WebDriver, REST API testing, Jenkins CI/CD, maintainable test framework design. Partner with developers on quality gates.",
+    "key_required_skills": [
+      "Java",
+      "Selenium",
+      "API Testing",
+      "Jenkins"
+    ]
+  },
+  {
+    "role_title": "QA Automation Engineer",
+    "company": "Arclight Systems",
+    "location": "Hyderabad",
+    "job_url": "https://example.com/jobs/qa-2",
+    "job_description": "QA Automation Engineer with Selenium, TestNG, Java and API automation experience. Build regression suites and integrate with CI.",
+    "key_required_skills": [
+      "Selenium",
+      "TestNG",
+      "Java"
+    ]
+  }
+]

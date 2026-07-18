@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Agent — Interview Prep Workspace</title>
+<style>
+  :root {
+    --ground:#F2F5F6; --surface:#FFFFFF; --surface-2:#F7FAFA;
+    --ink:#101619; --ink-2:#3D4C52; --muted:#66787E;
+    --line:#DDE5E7; --line-strong:#C4D0D3;
+    --accent:#0E7C86; --accent-soft:#E2F0F1;
+    --applied:#12833F; --prepared:#2563C9; --review:#C96A05; --skipped:#8E6BAD;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+    --r:6px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0E1214; --surface:#161A1D; --surface-2:#1C2226;
+      --ink:#E6EDEE; --ink-2:#B3C2C6; --muted:#7E9298;
+      --line:#293236; --line-strong:#3A464B;
+      --accent:#3FB6C0; --accent-soft:#14282B;
+      --applied:#279A52; --prepared:#4E86E0; --review:#CE7F16; --skipped:#A277C9;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:18px}
+
+  .topbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+    padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+  .brand{font-weight:660;letter-spacing:-.02em;font-size:15px}
+  .brand span{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:500}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+  select,button{font-family:var(--mono);font-size:12.5px;border-radius:5px;border:1px solid var(--line-strong);
+    background:var(--surface-2);color:var(--ink);padding:8px 12px;cursor:pointer}
+  select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary:hover:not(:disabled){filter:brightness(1.08)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+
+  h2{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;margin:0 0 12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+  .kpi .l{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .kpi .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:28px;font-weight:620;letter-spacing:-.02em;margin-top:6px;line-height:1.1}
+
+  /* upload */
+  .drop{border:1.5px dashed var(--line-strong);border-radius:var(--r);padding:20px;text-align:center;
+    background:var(--surface-2);transition:border-color .15s,background .15s}
+  .drop.over{border-color:var(--accent);background:var(--accent-soft)}
+  .drop p{margin:0 0 4px;font-size:13.5px;color:var(--ink-2)}
+  .drop .hint{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .have{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+    padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r)}
+  .have .n{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+  .have .m{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* targets */
+  .targets{display:flex;flex-direction:column;gap:12px}
+  .target{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+  .thead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+  .co{font-weight:620;font-size:15px;letter-spacing:-.01em}
+  .ro{color:var(--muted);font-size:13px}
+  .meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;
+    padding:3px 9px 3px 7px;border-radius:20px;border:1px solid currentColor;white-space:nowrap}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .st-applied{color:var(--applied)} .st-prepared{color:var(--prepared)}
+  .st-review{color:var(--review)} .st-skipped{color:var(--skipped)}
+
+  .files{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+  .f{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11.5px;
+    padding:6px 10px;border-radius:5px;border:1px solid var(--line);background:var(--surface-2);
+    color:var(--ink-2);text-decoration:none}
+  .f:hover{border-color:var(--accent);color:var(--accent)}
+  .f .dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}
+  .f.master{border-color:var(--line-strong);font-weight:600;color:var(--ink)}
+  .missing{margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--review)}
+
+  .ready{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--applied);border:1px solid var(--applied);border-radius:3px;padding:2px 7px}
+
+  .empty{text-align:center;padding:36px 20px;color:var(--muted)}
+  .empty h3{margin:0 0 6px;color:var(--ink-2);font-size:15px;font-weight:600}
+  .empty p{margin:0;font-size:13.5px}
+
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;
+    background:var(--ink);color:var(--surface);font-family:var(--mono);font-size:12px;
+    padding:10px 16px;border-radius:5px;opacity:0;transition:opacity .15s;pointer-events:none;max-width:90vw}
+  #toast.on{opacity:1}
+  #toast.err{background:var(--review)}
+
+  .runlog{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:5px;padding:10px 12px;margin-top:12px;
+    max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">Interview Prep Workspace<span>ai job application platform</span></div>
+    <div class="controls">
+      <select id="candidate" aria-label="Candidate"></select>
+      <button id="refresh">Refresh</button>
+      <button id="run" class="primary">Run pipeline</button>
+    </div>
+  </div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="card">
+    <h2>Master resume</h2>
+    <div id="resumeState"></div>
+    <div class="runlog" id="runlog" hidden></div>
+  </section>
+
+  <section>
+    <h2 style="padding-left:2px">Job targets</h2>
+    <div class="targets" id="targets"></div>
+  </section>
+
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+  var candidateSel = document.getElementById("candidate");
+  var targetsEl = document.getElementById("targets");
+  var kpisEl = document.getElementById("kpis");
+  var resumeEl = document.getElementById("resumeState");
+  var runBtn = document.getElementById("run");
+  var runlog = document.getElementById("runlog");
+  var toastEl = document.getElementById("toast");
+  var pollTimer = null;
+
+  function toast(msg, isError){
+    toastEl.textContent = msg;
+    toastEl.className = isError ? "on err" : "on";
+    setTimeout(function(){ toastEl.className = ""; }, 3800);
+  }
+  function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function kb(n){ return n < 1024 ? n + " B" : (n/1024).toFixed(0) + " KB"; }
+  function fileUrl(p){ return "/file?path=" + encodeURIComponent(p); }
+
+  var KIND_COLOR = { master_resume:"var(--ink-2)", resume:"var(--applied)", cover_letter:"var(--prepared)",
+    interview:"var(--review)", data:"var(--muted)", evidence:"var(--skipped)", log:"var(--muted)", source:"var(--muted)" };
+
+  function statusClass(s){
+    var k = String(s || "").toLowerCase();
+    if (k === "applied") return "st-applied";
+    if (k === "prepared") return "st-prepared";
+    if (k === "review") return "st-review";
+    return "st-skipped";
+  }
+
+  function renderKpis(d){
+    var items = [
+      ["Job targets", d.total_targets, "var(--ink)"],
+      ["Interview ready", d.interview_ready_count, "var(--applied)"],
+      ["Incomplete", d.incomplete_count, d.incomplete_count ? "var(--review)" : "var(--muted)"]
+    ];
+    kpisEl.innerHTML = items.map(function(i){
+      return '<div class="kpi"><div class="l">' + i[0] + '</div><div class="v" style="color:' + i[2] + '">' + i[1] + '</div></div>';
+    }).join("");
+  }
+
+  function renderResume(state){
+    if (state && state.present){
+      resumeEl.innerHTML =
+        '<div class="have"><div><div class="n">' + esc(state.name) + '</div>' +
+        '<div class="m">' + kb(state.size_bytes) + ' · updated ' + esc((state.modified||"").slice(0,16).replace("T"," ")) + '</div></div>' +
+        '<div style="display:flex;gap:8px"><a class="f" href="' + fileUrl(state.path) + '" target="_blank" rel="noopener">Open</a>' +
+        '<button id="replaceBtn">Replace</button></div></div>';
+      document.getElementById("replaceBtn").addEventListener("click", pickFile);
+    } else {
+      resumeEl.innerHTML =
+        '<div class="drop" id="drop"><p><strong>Drop the master resume here</strong> or click to choose a file</p>' +
+        '<div class="hint">PDF, DOCX, TXT or MD · saved as resume_master · never edited by the agent</div></div>';
+      wireDrop();
+    }
+  }
+
+  function pickFile(){
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.docx,.txt,.md";
+    input.addEventListener("change", function(){ if (input.files[0]) upload(input.files[0]); });
+    input.click();
+  }
+
+  function wireDrop(){
+    var drop = document.getElementById("drop");
+    if (!drop) return;
+    drop.addEventListener("click", pickFile);
+    ["dragenter","dragover"].forEach(function(e){
+      drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.add("over"); });
+    });
+    ["dragleave","drop"].forEach(function(e){
+      drop.addEventListener(e, function(ev){ ev.preventDefault(); drop.classList.remove("over"); });
+    });
+    drop.addEventListener("drop", function(ev){
+      if (ev.dataTransfer.files[0]) upload(ev.dataTransfer.files[0]);
+    });
+  }
+
+  function upload(file){
+    var fd = new FormData();
+    fd.append("file", file);
+    toast("Uploading " + file.name + "…");
+    fetch("/api/upload-resume?candidate=" + encodeURIComponent(candidateSel.value), { method:"POST", body:fd })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+      .then(function(res){
+        if (!res.ok) { toast(res.body.error || "Upload failed", true); return; }
+        toast("Saved to " + res.body.saved_to.split(/[\\/]/).pop());
+        load();
+      })
+      .catch(function(e){ toast("Upload failed: " + e.message, true); });
+  }
+
+  function renderTargets(list){
+    if (!list.length){
+      targetsEl.innerHTML =
+        '<div class="card empty"><h3>No job folders yet</h3>' +
+        '<p>Upload a master resume, then run the pipeline. Each applied job gets a folder under ' +
+        '<code>Profiles/&lt;candidate&gt;/&lt;profile&gt;/&lt;company&gt;/&lt;role&gt;/</code>.</p></div>';
+      return;
+    }
+    targetsEl.innerHTML = list.map(function(t){
+      var files = (t.files || []).map(function(f){
+        return '<a class="f' + (f.kind === "master_resume" ? " master" : "") + '" href="' + fileUrl(f.path) +
+          '" target="_blank" rel="noopener"><span class="dot" style="background:' +
+          (KIND_COLOR[f.kind] || "var(--muted)") + '"></span>' + esc(f.name) +
+          ' <span style="color:var(--muted)">' + kb(f.size_bytes) + '</span></a>';
+      }).join("");
+
+      var missing = (t.missing && t.missing.length)
+        ? '<div class="missing">missing: ' + t.missing.map(esc).join(", ") + '</div>' : "";
+
+      return '<article class="target"><div class="thead"><div>' +
+        '<div class="co">' + esc(t.company) + '</div>' +
+        '<div class="ro">' + esc(t.role) + '</div>' +
+        '<div class="meta">' + esc(t.portal || "—") + (t.match_score != null ? " · score " + esc(t.match_score) : "") +
+        " · " + esc(t.folder_name) + '</div></div>' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+        (t.interview_ready ? '<span class="ready">interview ready</span>' : "") +
+        '<span class="pill ' + statusClass(t.status || t.decision) + '">' + esc((t.status || t.decision || "pending").toLowerCase()) + '</span>' +
+        '</div></div><div class="files">' + files + '</div>' + missing + '</article>';
+    }).join("");
+  }
+
+  function load(){
+    var c = candidateSel.value;
+    if (!c) return;
+    fetch("/api/index?candidate=" + encodeURIComponent(c))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        renderKpis(d);
+        renderResume(d.resume_uploaded);
+        renderTargets(d.targets || []);
+      })
+      .catch(function(e){ toast("Could not load: " + e.message, true); });
+  }
+
+  function pollRun(){
+    fetch("/api/run-status").then(function(r){ return r.json(); }).then(function(s){
+      if (s.log && s.log.length){ runlog.hidden = false; runlog.textContent = s.log.join("\n"); runlog.scrollTop = runlog.scrollHeight; }
+      if (s.status === "running") return;
+      clearInterval(pollTimer); pollTimer = null;
+      runBtn.disabled = false; runBtn.textContent = "Run pipeline";
+      toast(s.status === "success" ? "Run complete" : "Run failed — see log", s.status !== "success");
+      load();
+    });
+  }
+
+  runBtn.addEventListener("click", function(){
+    runBtn.disabled = true; runBtn.textContent = "Running…";
+    runlog.hidden = false; runlog.textContent = "starting…";
+    fetch("/api/run?candidate=" + encodeURIComponent(candidateSel.value), { method:"POST" })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+      .then(function(res){
+        if (!res.ok){
+          toast(res.body.error || "Could not start", true);
+          runBtn.disabled = false; runBtn.textContent = "Run pipeline";
+          return;
+        }
+        pollTimer = setInterval(pollRun, 1500);
+      })
+      .catch(function(e){
+        toast("Could not start: " + e.message, true);
+        runBtn.disabled = false; runBtn.textContent = "Run pipeline";
+      });
+  });
+
+  document.getElementById("refresh").addEventListener("click", load);
+  candidateSel.addEventListener("change", load);
+
+  fetch("/api/candidates").then(function(r){ return r.json(); }).then(function(d){
+    candidateSel.innerHTML = (d.candidates || []).map(function(c){
+      return '<option value="' + esc(c) + '">' + esc(c) + "</option>";
+    }).join("");
+    load();
+  });
+})();
+</script>
+</body>
+</html>

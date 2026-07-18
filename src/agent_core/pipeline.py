@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
 
 from src.agent_core.application_executor import execute_application
+from src.agent_core.artifact_store import (
+    append_log,
+    build_index,
+    copy_master_resume,
+    resolve_target,
+)
 from src.agent_core.config_loader import build_runtime_context, persist_runtime_context
 from src.agent_core.cover_letter_generator import generate_cover_letter_bundle
 from src.agent_core.dashboard import build_dashboard
@@ -21,6 +28,7 @@ class FullPipelineResult:
     wf02_output_dir: Path
     processed_jobs: int
     dashboard_summary_path: Path
+    artifact_index_path: Path | None = None
 
 
 def run_full_pipeline(
@@ -33,11 +41,51 @@ def run_full_pipeline(
     wf02_result = run_job_search(repo_root, run_context, input_dir=job_feed_input_dir)
 
     eligible_jobs = json.loads(wf02_result.eligible_jobs_path.read_text(encoding="utf-8"))
+    profile_name = _active_profile_name(run_context)
     processed_jobs = 0
     for job in eligible_jobs:
-        artifact_dir = _job_artifact_dir(wf02_result.output_dir, job)
+        staging_dir = _job_artifact_dir(wf02_result.output_dir, job)
+
+        # Spec section 5 layout: Profiles/<candidate>/<profile>/<company>/<role>/.
+        # WF02 stages JD.txt and metadata.json, which seed the browsable folder.
+        target = resolve_target(
+            repo_root=repo_root,
+            candidate_id=str(run_context.get("candidate_id", "")),
+            profile_name=profile_name,
+            company=str(job.get("company", "unknown")),
+            role=str(job.get("role_title", "unknown")),
+        )
+        artifact_dir = target.directory
+        _seed_from_staging(staging_dir, artifact_dir)
+        append_log(
+            artifact_dir,
+            "WF02",
+            "resolve_artifact_target",
+            "OK",
+            f"versioned_rerun={target.is_versioned_rerun}",
+        )
+
+        master_resume = _master_resume_path(run_context)
+        if master_resume is not None:
+            copied = copy_master_resume(artifact_dir, master_resume)
+            append_log(
+                artifact_dir,
+                "WF03",
+                "copy_master_resume",
+                "OK" if copied else "SKIPPED",
+                str(master_resume),
+            )
+
         resume_result = generate_resume_bundle(repo_root, run_context, artifact_dir)
+        append_log(artifact_dir, "WF03", "generate_resume", "OK", f"mode={resume_result.generation_mode}")
         cover_letter_result = generate_cover_letter_bundle(repo_root, run_context, artifact_dir)
+        append_log(
+            artifact_dir,
+            "WF04",
+            "generate_cover_letter",
+            "OK",
+            f"mode={cover_letter_result.generation_mode}",
+        )
 
         # Application.json must carry the prompt and model provenance for every
         # generation step that fed it (spec section 10).
@@ -50,18 +98,77 @@ def run_full_pipeline(
         application_result = execute_application(
             repo_root, run_context, artifact_dir, provenance=provenance
         )
+        append_log(artifact_dir, "WF05", "execute_application", application_result.status)
         dispatch_notifications(repo_root, run_context, artifact_dir)
+        append_log(artifact_dir, "WF06", "dispatch_notifications", "OK")
+
+        # Interview prep is the point of the folder for the candidate, so it runs
+        # whenever an application was actually submitted.
         if application_result.status == "Applied":
             generate_interview_prep(repo_root, run_context, artifact_dir)
+            append_log(artifact_dir, "WF07", "generate_interview_prep", "OK")
         processed_jobs += 1
 
     dashboard_result = build_dashboard(repo_root, run_context)
+    artifact_index_path = _write_artifact_index(repo_root, run_context)
     return FullPipelineResult(
         run_context_path=run_context_path,
         wf02_output_dir=wf02_result.output_dir,
         processed_jobs=processed_jobs,
         dashboard_summary_path=dashboard_result.summary_json_path,
+        artifact_index_path=artifact_index_path,
     )
+
+
+def _active_profile_name(run_context: Dict[str, Any]) -> str:
+    """Name of the role profile this run targeted, used as a path segment."""
+    profile_pack = run_context.get("profile_pack")
+    if isinstance(profile_pack, dict):
+        selected = profile_pack.get("selected_profiles")
+        if isinstance(selected, list) and selected:
+            first = selected[0]
+            if isinstance(first, dict):
+                name = str(first.get("name") or first.get("id") or "").strip()
+                if name:
+                    return name
+    return "default"
+
+
+def _master_resume_path(run_context: Dict[str, Any]) -> Path | None:
+    paths = run_context.get("paths")
+    if not isinstance(paths, dict):
+        return None
+    resume_folder = Path(str(paths.get("resume_folder", "")))
+    if not resume_folder.exists():
+        return None
+    for name in ("resume_master.pdf", "resume_master.docx", "resume_master.txt", "resume_master.md"):
+        candidate = resume_folder / name
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _seed_from_staging(staging_dir: Path, target_dir: Path) -> None:
+    """Move WF02's staged JD and metadata into the browsable target folder."""
+    if not staging_dir.exists():
+        return
+    for name in ("JD.txt", "metadata.json"):
+        source = staging_dir / name
+        if source.exists() and not (target_dir / name).exists():
+            shutil.copy2(source, target_dir / name)
+
+
+def _write_artifact_index(repo_root: Path, run_context: Dict[str, Any]) -> Path | None:
+    """Emit the JSON index the dashboard reads to browse job folders."""
+    candidate_id = str(run_context.get("candidate_id", "")).strip()
+    if not candidate_id:
+        return None
+    index = build_index(repo_root, candidate_id)
+    destination = repo_root / "output" / candidate_id / "dashboard"
+    destination.mkdir(parents=True, exist_ok=True)
+    index_path = destination / "artifact_index.json"
+    index_path.write_text(json.dumps(index, indent=2), encoding="utf-8")
+    return index_path
 
 
 def _merge_provenance(
