@@ -1,0 +1,41 @@
+{
+  "linkedin": {
+    "enabled": true,
+    "email_env": "LINKEDIN_EMAIL",
+    "password_env": "LINKEDIN_PASSWORD"
+  },
+  "indeed": {
+    "enabled": true,
+    "email_env": "INDEED_EMAIL",
+    "password_env": "INDEED_PASSWORD"
+  },
+  "naukri": {
+    "enabled": true,
+    "email_env": "NAUKRI_EMAIL",
+    "password_env": "NAUKRI_PASSWORD"
+  },
+  "foundit": {
+    "enabled": false,
+    "email_env": "FOUNDIT_EMAIL",
+    "password_env": "FOUNDIT_PASSWORD"
+  },
+  "wellfound": {
+    "enabled": false,
+    "email_env": "WELLFOUND_EMAIL",
+    "password_env": "WELLFOUND_PASSWORD"
+  },
+  "greenhouse": {
+    "enabled": true
+  },
+  "lever": {
+    "enabled": true
+  },
+  "remoteok": {
+    "enabled": true
+  },
+  "dice": {
+    "enabled": false,
+    "email_env": "DICE_EMAIL",
+    "password_env": "DICE_PASSWORD"
+  }
+}

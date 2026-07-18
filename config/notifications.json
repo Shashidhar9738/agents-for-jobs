@@ -1,0 +1,15 @@
+{
+  "email": {
+    "enabled": true,
+    "provider": "gmail",
+    "to": "",
+    "from_env": "NOTIFICATION_EMAIL"
+  },
+  "whatsapp": {
+    "enabled": false,
+    "provider": "twilio",
+    "to": "",
+    "account_sid_env": "TWILIO_ACCOUNT_SID",
+    "auth_token_env": "TWILIO_AUTH_TOKEN"
+  }
+}

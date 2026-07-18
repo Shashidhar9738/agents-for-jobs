@@ -1,0 +1,33 @@
+{
+  "profiles": [
+    {
+      "id": "qa_automation",
+      "name": "QA Automation Engineer",
+      "keywords": [
+        "Selenium",
+        "Java",
+        "API Testing",
+        "JMeter"
+      ]
+    },
+    {
+      "id": "sdet",
+      "name": "SDET",
+      "keywords": [
+        "Automation",
+        "Java",
+        "CI/CD",
+        "TestNG"
+      ]
+    },
+    {
+      "id": "performance",
+      "name": "Performance Test Engineer",
+      "keywords": [
+        "JMeter",
+        "Load Testing",
+        "Performance Testing"
+      ]
+    }
+  ]
+}
