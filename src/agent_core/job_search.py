@@ -123,17 +123,17 @@ def _apply_ai_scoring(
 
     try:
         client = AIClient.from_run_context(run_context)
-    except AIClientError:
-        return "deterministic", {}, {}
+    except AIClientError as exc:
+        return "deterministic", {}, {"fallback_reason": str(exc)}
 
     if not client.available:
-        return "deterministic", {}, {}
+        return "deterministic", {}, {"fallback_reason": "no provider credential configured"}
 
     try:
         system_prompt = load_prompt(repo_root, "system")
         matcher_prompt = load_prompt(repo_root, "job_matcher")
-    except PromptLoadError:
-        return "deterministic", {}, {}
+    except PromptLoadError as exc:
+        return "deterministic", {}, {"fallback_reason": str(exc)}
 
     # One call per run rather than per job keeps cost and latency bounded.
     job_digest = [
@@ -168,16 +168,19 @@ def _apply_ai_scoring(
             system_prompt=system_prompt.text,
             user_prompt=user_prompt,
             purpose="wf02_job_matching",
+            # Scoring returns a few fields per job, so the budget scales with the
+            # batch instead of always requesting a large fixed ceiling.
+            max_tokens=min(400 + 160 * len(eligible), 4096),
         )
-    except AIClientError:
-        return "deterministic", {}, {}
+    except AIClientError as exc:
+        return "deterministic", {}, {"fallback_reason": str(exc)[:300]}
 
     if not response.data:
-        return "deterministic", {}, {}
+        return "deterministic", {}, {"fallback_reason": "model reply was not valid JSON"}
 
     scores = response.data.get("scores")
     if not isinstance(scores, list):
-        return "deterministic", {}, {}
+        return "deterministic", {}, {"fallback_reason": "model reply had no 'scores' array"}
 
     minimum_match = int(candidate_preferences.get("minimum_match", 0) or 0)
     applied_any = False
@@ -458,7 +461,11 @@ def _score_and_route_job(
 
     title_score = _bounded_ratio_score(target_roles, searchable_text, 25)
     matched_skills = sorted(skill for skill in candidate_skills if skill in searchable_text)
-    skills_score = int(round((min(len(matched_skills), max(len(candidate_skills), 1)) / max(min(len(candidate_skills), 8), 1)) * 35))
+    skills_score = _skills_coverage_score(
+        matched_skills,
+        _normalize_string_list(job.get("key_required_skills")),
+        max_score=35,
+    )
     matched_required = [keyword for keyword in required_keywords if keyword in searchable_text]
     missing_required = [keyword for keyword in required_keywords if keyword not in searchable_text]
     matched_preferred = [keyword for keyword in preferred_keywords if keyword in searchable_text]
@@ -529,10 +536,47 @@ def _score_and_route_job(
 
 
 def _bounded_ratio_score(terms: List[str], searchable_text: str, max_score: int) -> int:
+    """Score a set of alternatives the candidate would accept (OR semantics).
+
+    Target roles are alternatives, not requirements: wanting "SDET" OR "QA
+    Automation Engineer" and finding one of them is a full match. Averaging over
+    the whole list would penalise a candidate for being open to more roles.
+    """
     if not terms:
         return 0
-    matches = sum(1 for term in terms if term in searchable_text)
-    return int(round((matches / len(terms)) * max_score))
+    if any(term in searchable_text for term in terms):
+        return max_score
+    return 0
+
+
+def _skills_coverage_score(
+    matched_skills: List[str],
+    required_skills: List[str],
+    max_score: int,
+    saturation: int = 4,
+) -> int:
+    """Score how much of what the JOB needs the candidate covers.
+
+    Deliberately not divided by the candidate's total skill count - a broad
+    profile must never score lower than a narrow one for the same job. When the
+    posting lists required skills, coverage of those is the measure; otherwise
+    matching `saturation` relevant skills earns full marks.
+    """
+    if not matched_skills:
+        return 0
+
+    matched_lower = {skill.lower() for skill in matched_skills}
+    if required_skills:
+        required_lower = {skill.lower().strip() for skill in required_skills if skill.strip()}
+        if required_lower:
+            covered = sum(
+                1
+                for requirement in required_lower
+                if any(requirement in skill or skill in requirement for skill in matched_lower)
+            )
+            return int(round((covered / len(required_lower)) * max_score))
+
+    return int(round(min(len(matched_lower) / saturation, 1.0) * max_score))
 
 
 def _location_score(

@@ -30,6 +30,7 @@
     "api_key_env": "OPENROUTER_API_KEY",
     "model": "openai/gpt-4.1",
     "json_mode": true,
+    "max_tokens": 2000,
     "site_url": "http://localhost:5678",
     "app_name": "AI Job Application Platform"
   },

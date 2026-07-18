@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — Job Agent</title>
+<style>
+  :root{
+    --ground:#F2F5F6; --surface:#FFFFFF; --surface-2:#F7FAFA;
+    --ink:#101619; --ink-2:#3D4C52; --muted:#66787E;
+    --line:#DDE5E7; --line-strong:#C4D0D3; --accent:#0E7C86; --review:#C96A05;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0E1214; --surface:#161A1D; --surface-2:#1C2226;
+      --ink:#E6EDEE; --ink-2:#B3C2C6; --muted:#7E9298;
+      --line:#293236; --line-strong:#3A464B; --accent:#3FB6C0; --review:#CE7F16;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+    background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  .card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;padding:28px}
+  h1{margin:0;font-size:19px;letter-spacing:-.02em;font-weight:660}
+  .sub{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin:3px 0 22px}
+  label{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+  input{width:100%;padding:10px 12px;border-radius:5px;border:1px solid var(--line-strong);
+    background:var(--surface-2);color:var(--ink);font-family:var(--sans);font-size:14px;margin-bottom:16px}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  button{width:100%;padding:11px;border-radius:5px;border:1px solid var(--accent);
+    background:var(--accent);color:#fff;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer}
+  button:hover:not(:disabled){filter:brightness(1.08)}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .err{display:none;margin-bottom:16px;padding:10px 12px;border-radius:5px;
+    border:1px solid var(--review);color:var(--review);font-size:13px}
+  .err.on{display:block}
+  .setup{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted)}
+  code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:3px;padding:2px 6px;display:inline-block;margin-top:6px}
+</style>
+</head>
+<body>
+  <form class="card" id="form" autocomplete="on">
+    <h1>Job Agent</h1>
+    <div class="sub">sign in to continue</div>
+
+    <div class="err" id="err" role="alert"></div>
+
+    <label for="u">Username</label>
+    <input id="u" name="username" autocomplete="username" required autofocus>
+
+    <label for="p">Password</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+
+    <button type="submit" id="btn">Sign in</button>
+
+    <div class="setup" id="setup" hidden>
+      No accounts exist yet. Create the first one from a terminal:
+      <code>python scripts/manage_users.py --add-admin admin</code>
+    </div>
+  </form>
+
+<script>
+(function(){
+  var form = document.getElementById("form");
+  var err = document.getElementById("err");
+  var btn = document.getElementById("btn");
+
+  fetch("/api/session").then(function(r){ return r.json(); }).then(function(s){
+    if (s.setup_required) document.getElementById("setup").hidden = false;
+    if (s.authenticated) location.href = "/";
+  });
+
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    err.className = "err";
+    btn.disabled = true; btn.textContent = "Signing in…";
+
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("u").value,
+        password: document.getElementById("p").value
+      })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+    .then(function(res){
+      if (!res.ok){
+        err.textContent = res.body.error || "Sign in failed";
+        err.className = "err on";
+        btn.disabled = false; btn.textContent = "Sign in";
+        document.getElementById("p").value = "";
+        return;
+      }
+      location.href = "/";
+    })
+    .catch(function(e){
+      err.textContent = "Could not reach the server: " + e.message;
+      err.className = "err on";
+      btn.disabled = false; btn.textContent = "Sign in";
+    });
+  });
+})();
+</script>
+</body>
+</html>

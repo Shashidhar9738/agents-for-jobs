@@ -85,6 +85,29 @@
   .ready{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
     color:var(--applied);border:1px solid var(--applied);border-radius:3px;padding:2px 7px}
 
+  /* interview prep */
+  .prep-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+  .qa{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .qa details{border-bottom:1px solid var(--line)}
+  .qa details:last-child{border-bottom:none}
+  .qa summary{cursor:pointer;padding:9px 0;font-family:var(--mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;list-style:none}
+  .qa summary::-webkit-details-marker{display:none}
+  .qa summary::before{content:"▸ ";color:var(--accent)}
+  .qa details[open] summary::before{content:"▾ "}
+  .qa summary:hover{color:var(--accent)}
+  .qa ol,.qa ul{margin:2px 0 12px;padding-left:22px;display:flex;flex-direction:column;gap:7px}
+  .qa li{font-size:13.5px;color:var(--ink-2);line-height:1.55}
+  .qa li::marker{color:var(--muted);font-family:var(--mono);font-size:11.5px}
+
+  label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--muted);margin-bottom:5px}
+  input{width:100%;padding:9px 11px;border-radius:5px;border:1px solid var(--line-strong);
+    background:var(--surface-2);color:var(--ink);font-family:var(--sans);font-size:13.5px}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  button.chip{cursor:pointer}
+  button.chip:hover{border-color:var(--accent);color:var(--accent)}
+
   .empty{text-align:center;padding:36px 20px;color:var(--muted)}
   .empty h3{margin:0 0 6px;color:var(--ink-2);font-size:15px;font-weight:600}
   .empty p{margin:0;font-size:13.5px}
@@ -119,6 +142,44 @@
     <h2>Master resume</h2>
     <div id="resumeState"></div>
     <div class="runlog" id="runlog" hidden></div>
+  </section>
+
+  <section class="card" id="adminCard" hidden>
+    <h2>All candidates (admin)</h2>
+    <div class="scroll"><table id="adminTable"></table></div>
+  </section>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2 style="margin:0">Job portals &amp; credentials</h2>
+      <button id="suggestBtn">Suggest portals for me</button>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0">
+      Credentials are encrypted before they touch disk and are never sent back to this page.
+    </p>
+    <div id="suggestions" class="derived"></div>
+    <div id="credList" style="margin-top:14px"></div>
+
+    <form id="credForm" style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end">
+      <div>
+        <label for="cPortal">Portal</label>
+        <input id="cPortal" name="portal" placeholder="linkedin" required>
+      </div>
+      <div>
+        <label for="cUser">Username / email</label>
+        <input id="cUser" name="username" autocomplete="off" required>
+      </div>
+      <div>
+        <label for="cPass">Password</label>
+        <input id="cPass" name="password" type="password" autocomplete="new-password">
+      </div>
+      <button type="submit" class="primary">Save credential</button>
+    </form>
+  </section>
+
+  <section>
+    <h2 style="padding-left:2px">Interview prep</h2>
+    <div class="targets" id="prep"></div>
   </section>
 
   <section>
@@ -256,15 +317,87 @@
     }).join("");
   }
 
+  // The interview pack is what the candidate actually studies, so it renders
+  // inline rather than only as a PDF download.
+  function renderPrep(list){
+    var prepEl = document.getElementById("prep");
+    if (!list.length){
+      prepEl.innerHTML =
+        '<div class="card empty"><h3>No interview packs yet</h3>' +
+        '<p>A pack is generated automatically when a job is marked <strong>Applied</strong>. ' +
+        'You can also build one now for any target below.</p></div>';
+      return;
+    }
+    prepEl.innerHTML = list.map(function(t){
+      var dir = encodeURIComponent(t.directory);
+      return '<article class="target" data-dir="' + esc(t.directory) + '">' +
+        '<div class="prep-head"><div>' +
+        '<div class="co">' + esc(t.company) + '</div>' +
+        '<div class="ro">' + esc(t.role) + '</div></div>' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+        (t.interview_ready ? '<span class="ready">pack ready</span>' : "") +
+        (t.interview_ready
+          ? '<a class="f" href="/file?path=' + dir + '%2FInterviewQuestions.pdf" target="_blank" rel="noopener">PDF</a>'
+          : "") +
+        '<button class="prep-btn" data-dir="' + esc(t.directory) + '">' +
+        (t.interview_ready ? "Regenerate" : "Generate prep") + "</button>" +
+        '</div></div><div class="qa" id="qa-' + esc(t.folder_name) + '"></div></article>';
+    }).join("");
+
+    prepEl.querySelectorAll(".prep-btn").forEach(function(btn){
+      btn.addEventListener("click", function(){ generatePrep(btn.dataset.dir, btn); });
+    });
+    list.forEach(function(t){
+      if (t.interview_ready) loadQa(t.directory, "qa-" + t.folder_name);
+    });
+  }
+
+  function loadQa(dir, elementId){
+    fetch("/api/interview?dir=" + encodeURIComponent(dir))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var host = document.getElementById(elementId);
+        if (!host || !d.exists) return;
+        host.innerHTML = (d.sections || []).map(function(s, i){
+          var numbered = /likely interview questions/i.test(s.heading);
+          var tag = numbered ? "ol" : "ul";
+          return "<details" + (i === 0 ? " open" : "") + "><summary>" + esc(s.heading) +
+            " · " + s.items.length + "</summary><" + tag + ">" +
+            s.items.map(function(it){ return "<li>" + esc(it) + "</li>"; }).join("") +
+            "</" + tag + "></details>";
+        }).join("");
+      });
+  }
+
+  function generatePrep(dir, btn){
+    btn.disabled = true; btn.textContent = "Generating…";
+    fetch("/api/generate-prep?candidate=" + encodeURIComponent(candidateSel.value) +
+          "&dir=" + encodeURIComponent(dir), { method:"POST" })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+      .then(function(res){
+        if (!res.ok){ toast(res.body.error || "Could not generate", true); btn.disabled = false; btn.textContent = "Generate prep"; return; }
+        toast("Interview pack ready (" + res.body.mode + ")");
+        load();
+      })
+      .catch(function(e){ toast("Failed: " + e.message, true); btn.disabled = false; btn.textContent = "Generate prep"; });
+  }
+
   function load(){
     var c = candidateSel.value;
     if (!c) return;
     fetch("/api/index?candidate=" + encodeURIComponent(c))
       .then(function(r){ return r.json(); })
       .then(function(d){
+        var targets = d.targets || [];
         renderKpis(d);
         renderResume(d.resume_uploaded);
-        renderTargets(d.targets || []);
+        renderTargets(targets);
+        // Applied jobs first - those are the ones with a real interview ahead.
+        renderPrep(targets.filter(function(t){
+          return t.interview_ready || String(t.status).toLowerCase() === "applied";
+        }).concat(targets.filter(function(t){
+          return !t.interview_ready && String(t.status).toLowerCase() !== "applied";
+        })));
       })
       .catch(function(e){ toast("Could not load: " + e.message, true); });
   }
@@ -299,14 +432,123 @@
       });
   });
 
-  document.getElementById("refresh").addEventListener("click", load);
-  candidateSel.addEventListener("change", load);
+  // ---- portals & credentials ----
+  function renderCreds(list){
+    var host = document.getElementById("credList");
+    if (!list.length){
+      host.innerHTML = '<div style="font-family:var(--mono);font-size:12px;color:var(--muted)">' +
+        'No portal credentials saved yet.</div>';
+      return;
+    }
+    host.innerHTML = list.map(function(c){
+      return '<div class="have" style="margin-bottom:8px"><div>' +
+        '<div class="n">' + esc(c.portal) + ' · ' + esc(c.username) + '</div>' +
+        '<div class="m">' + (c.has_password ? "password stored" : "no password") +
+        (c.needs_reentry ? ' · <span style="color:var(--review)">re-enter (vault key changed)</span>' : "") +
+        ' · ' + esc((c.updated_at || "").slice(0,16).replace("T"," ")) + '</div></div>' +
+        '<button class="del-cred" data-portal="' + esc(c.portal) + '">Remove</button></div>';
+    }).join("");
 
-  fetch("/api/candidates").then(function(r){ return r.json(); }).then(function(d){
+    host.querySelectorAll(".del-cred").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        fetch("/api/credentials/delete", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ candidate: candidateSel.value, portal: btn.dataset.portal })
+        }).then(function(r){ return r.json(); }).then(function(d){
+          toast("Credential removed"); renderCreds(d.credentials || []);
+        });
+      });
+    });
+  }
+
+  function loadCreds(){
+    fetch("/api/credentials?candidate=" + encodeURIComponent(candidateSel.value))
+      .then(function(r){ return r.json(); })
+      .then(function(d){ renderCreds(d.credentials || []); })
+      .catch(function(){});
+  }
+
+  document.getElementById("credForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    fetch("/api/credentials", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        candidate: candidateSel.value,
+        portal: document.getElementById("cPortal").value,
+        username: document.getElementById("cUser").value,
+        password: document.getElementById("cPass").value
+      })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+    .then(function(res){
+      if (!res.ok){ toast(res.body.error || "Could not save", true); return; }
+      toast("Credential saved (encrypted)");
+      document.getElementById("cPass").value = "";
+      renderCreds(res.body.credentials || []);
+    });
+  });
+
+  document.getElementById("suggestBtn").addEventListener("click", function(){
+    var btn = this;
+    btn.disabled = true; btn.textContent = "Asking…";
+    fetch("/api/suggest-portals", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ candidate: candidateSel.value })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      document.getElementById("suggestions").innerHTML = (d.suggestions || []).map(function(s){
+        return '<button class="chip suggest-pick" data-portal="' + esc(s.portal) + '" title="' +
+          esc(s.reason) + '">' + esc(s.display_name) + " · " + esc(s.priority) + "</button>";
+      }).join("");
+      document.querySelectorAll(".suggest-pick").forEach(function(chip){
+        chip.addEventListener("click", function(){
+          document.getElementById("cPortal").value = chip.dataset.portal;
+          document.getElementById("cUser").focus();
+        });
+      });
+      btn.disabled = false; btn.textContent = "Suggest portals for me";
+    })
+    .catch(function(e){ toast("Failed: " + e.message, true); btn.disabled = false; btn.textContent = "Suggest portals for me"; });
+  });
+
+  function loadAdmin(){
+    fetch("/api/admin/overview").then(function(r){
+      if (!r.ok) return null;
+      return r.json();
+    }).then(function(d){
+      if (!d) return;
+      document.getElementById("adminCard").hidden = false;
+      document.getElementById("adminTable").innerHTML =
+        "<thead><tr><th>Candidate</th><th class='num'>Targets</th><th class='num'>Interview ready</th>" +
+        "<th class='num'>Jobs found</th><th class='num'>Portals</th><th class='num'>Cost</th></tr></thead><tbody>" +
+        d.candidates.map(function(c){
+          return "<tr><td>" + esc(c.candidate_id) + "</td><td class='num'>" + c.targets +
+            "</td><td class='num'>" + c.interview_ready + "</td><td class='num'>" + c.jobs_found +
+            "</td><td class='num'>" + c.portals_configured + "</td><td class='num'>$" +
+            Number(c.cost_usd || 0).toFixed(4) + "</td></tr>";
+        }).join("") + "</tbody>";
+    }).catch(function(){});
+  }
+
+  document.getElementById("refresh").addEventListener("click", function(){ load(); loadCreds(); });
+  candidateSel.addEventListener("change", function(){ load(); loadCreds(); });
+
+  fetch("/api/candidates").then(function(r){
+    if (r.status === 401){ location.href = "/login"; return null; }
+    return r.json();
+  }).then(function(d){
+    if (!d) return;
     candidateSel.innerHTML = (d.candidates || []).map(function(c){
       return '<option value="' + esc(c) + '">' + esc(c) + "</option>";
     }).join("");
+    if (d.user){
+      document.querySelector(".brand span").textContent =
+        d.user.role === "admin" ? "signed in as " + d.user.username + " · admin" : "candidate: " + d.user.username;
+      if (d.user.role === "admin") loadAdmin();
+    }
     load();
+    loadCreds();
   });
 })();
 </script>

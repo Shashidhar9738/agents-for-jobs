@@ -160,6 +160,12 @@ class AIClient:
         """Call the configured provider and parse a JSON object from the reply."""
         self.require_available()
 
+        # A prepaid or free-tier account rejects requests whose max_tokens exceeds
+        # the remaining balance, so the ceiling stays configurable.
+        configured_cap = self._config.get("max_tokens")
+        if isinstance(configured_cap, int) and configured_cap > 0:
+            max_tokens = min(max_tokens, configured_cap)
+
         text, prompt_tokens, completion_tokens = self._dispatch(
             system_prompt=system_prompt,
             user_prompt=user_prompt,

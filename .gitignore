@@ -34,3 +34,8 @@ output/*/**
 data/job_feeds/
 data/candidates/*/resume/*
 !data/candidates/*/resume/README.txt
+
+# Auth and secrets (never commit)
+config/users.json
+config/vault.json
+config/candidates/*/previous/
