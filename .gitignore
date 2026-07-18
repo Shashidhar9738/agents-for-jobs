@@ -1,0 +1,20 @@
+# Runtime logs and transient files
+setup.log
+!LOGFILE!
+logs/
+
+# n8n runtime artifacts
+n8n/node_modules/
+n8n/package-lock.json
+n8n/package.json
+
+# General node artifacts
+node_modules/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

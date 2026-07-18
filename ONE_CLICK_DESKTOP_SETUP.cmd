@@ -10,14 +10,16 @@ echo.
 set "WORKSPACE=%~dp0"
 if "!WORKSPACE:~-1!"=="\" set "WORKSPACE=!WORKSPACE:~0,-1!"
 set "LOGFILE=!WORKSPACE!\setup.log"
+set "N8N_HOME=%LOCALAPPDATA%\AIJobAgent\n8n"
 
 echo [%date% %time%] Setup started > "!LOGFILE!"
 echo [INFO] Workspace: !WORKSPACE!
 echo [INFO] Workspace: !WORKSPACE! >> "!LOGFILE!"
 
-for %%D in (data output n8n logs) do (
+for %%D in (data output logs) do (
   if not exist "!WORKSPACE!\%%D" mkdir "!WORKSPACE!\%%D"
 )
+if not exist "!N8N_HOME!" mkdir "!N8N_HOME!"
 
 rem --- Detect Python
 set "PYTHON_CMD="
@@ -95,10 +97,10 @@ echo [STEP] Downloading Playwright Chromium...
 !PYTHON_CMD! -m playwright install chromium >> "!LOGFILE!" 2>&1
 if errorlevel 1 echo [WARN] Playwright download failed - run manually: py -m playwright install chromium
 
-rem --- Install n8n locally
-echo [STEP] Installing n8n locally ^(no admin needed^)...
-if not exist "!WORKSPACE!\n8n\package.json" (
-  pushd "!WORKSPACE!\n8n"
+rem --- Install n8n in user profile (outside repository)
+echo [STEP] Installing n8n in user profile ^(no admin needed^)...
+if not exist "!N8N_HOME!\package.json" (
+  pushd "!N8N_HOME!"
   npm init -y >> "!LOGFILE!" 2>&1
   if errorlevel 1 (
     popd
@@ -107,8 +109,8 @@ if not exist "!WORKSPACE!\n8n\package.json" (
   )
   popd
 )
-pushd "!WORKSPACE!\n8n"
-npm install n8n --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
+pushd "!N8N_HOME!"
+npm install n8n --legacy-peer-deps --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
 set "NPM_EXIT=!ERRORLEVEL!"
 popd
 if not "!NPM_EXIT!"=="0" (
@@ -129,8 +131,8 @@ if not exist "!WORKSPACE!\output\AppliedJobs.csv" (
 rem --- Start n8n
 echo.
 echo [STEP] Starting n8n...
-set "N8N_BIN=!WORKSPACE!\n8n\node_modules\.bin\n8n.cmd"
-if not exist "!N8N_BIN!" set "N8N_BIN=!WORKSPACE!\n8n\node_modules\n8n\bin\n8n"
+set "N8N_BIN=!N8N_HOME!\node_modules\.bin\n8n.cmd"
+if not exist "!N8N_BIN!" set "N8N_BIN=!N8N_HOME!\node_modules\n8n\bin\n8n"
 if not exist "!N8N_BIN!" (
   echo [ERROR] n8n launcher not found. Check setup.log
   goto :fail
@@ -146,6 +148,7 @@ echo  Desktop : http://localhost:5678
 echo  Laptop  : http://YOUR_DESKTOP_IP:5678
 echo  Login   : admin
 echo  Password: ChangeThisNow123!
+echo  n8n home: !N8N_HOME!
 echo  Import  : n8n\job-application-agent.workflow.json
 echo ================================================
 pause
