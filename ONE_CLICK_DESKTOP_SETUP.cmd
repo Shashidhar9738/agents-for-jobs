@@ -66,13 +66,13 @@ if not defined PYTHON_CMD (
   goto :fail
 )
 
-call :run "%PYTHON_CMD% --version"
+call :run_command "%PYTHON_CMD%" --version
 if errorlevel 1 goto :fail
 
-call :run "node -v"
+call :run_command node -v
 if errorlevel 1 goto :fail
 
-call :run "npm -v"
+call :run_command npm -v
 if errorlevel 1 goto :fail
 
 if not exist "%WORKSPACE%\requirements-agent.txt" (
@@ -88,14 +88,14 @@ if not exist "%WORKSPACE%\requirements-agent.txt" (
 )
 
 call :info "Installing Python dependencies"
-call :run "%PYTHON_CMD% -m pip install --upgrade pip"
+call :run_command "%PYTHON_CMD%" -m pip install --upgrade pip
 if errorlevel 1 goto :fail
 
-call :run "%PYTHON_CMD% -m pip install -r "%WORKSPACE%\requirements-agent.txt""
+call :run_command "%PYTHON_CMD%" -m pip install -r "%WORKSPACE%\requirements-agent.txt"
 if errorlevel 1 goto :fail
 
 call :info "Downloading Playwright browser (Chromium)"
-call :run "%PYTHON_CMD% -m playwright install chromium"
+call :run_command "%PYTHON_CMD%" -m playwright install chromium
 if errorlevel 1 goto :fail
 
 if not exist "%WORKSPACE%\output\AppliedJobs.csv" (
@@ -109,9 +109,15 @@ if not exist "%WORKSPACE%\n8n\job-application-agent.workflow.json" (
 )
 
 call :info "Installing n8n"
-call :run "npm install --prefix ""%WORKSPACE%\n8n"" n8n@1.85.1 --omit=optional"
+call :run_command npm install --prefix "%WORKSPACE%\n8n" n8n@1.85.1 --omit=optional --no-audit --no-fund
 if errorlevel 1 goto :fail
-set "N8N_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
+
+set "N8N_LOCAL_JS=%WORKSPACE%\n8n\node_modules\n8n\bin\n8n.js"
+set "N8N_LOCAL_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
+if not exist "%N8N_LOCAL_JS%" if not exist "%N8N_LOCAL_CMD%" (
+  call :error "n8n package did not produce a launcher."
+  goto :fail
+)
 
 call :info "Setting n8n environment for LAN access"
 set "N8N_HOST=0.0.0.0"
@@ -123,11 +129,11 @@ set "N8N_BASIC_AUTH_USER=admin"
 set "N8N_BASIC_AUTH_PASSWORD=ChangeThisNow123!"
 
 call :info "Starting n8n in a new window"
-set "N8N_START_CMD=n8n"
-if exist "%APPDATA%\npm\n8n.cmd" set "N8N_START_CMD=%APPDATA%\npm\n8n.cmd"
-if exist "%ProgramFiles%\nodejs\n8n.cmd" set "N8N_START_CMD=%ProgramFiles%\nodejs\n8n.cmd"
-if exist "%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd" set "N8N_START_CMD=%WORKSPACE%\n8n\node_modules\.bin\n8n.cmd"
-start "n8n-server" cmd /k "set N8N_HOST=%N8N_HOST%&& set N8N_PORT=%N8N_PORT%&& set N8N_PROTOCOL=%N8N_PROTOCOL%&& set N8N_SECURE_COOKIE=%N8N_SECURE_COOKIE%&& set N8N_BASIC_AUTH_ACTIVE=%N8N_BASIC_AUTH_ACTIVE%&& set N8N_BASIC_AUTH_USER=%N8N_BASIC_AUTH_USER%&& set N8N_BASIC_AUTH_PASSWORD=%N8N_BASIC_AUTH_PASSWORD%&& call "%N8N_START_CMD%""
+if exist "%N8N_LOCAL_CMD%" (
+  start "n8n-server" "%N8N_LOCAL_CMD%" --host=%N8N_HOST% --port=%N8N_PORT%
+) else (
+  start "n8n-server" node "%N8N_LOCAL_JS%" --host=%N8N_HOST% --port=%N8N_PORT%
+)
 
 call :info "Setup completed successfully"
 echo.
@@ -205,15 +211,13 @@ if not exist "%~1" (
 )
 exit /b 0
 
-:run
-set "CMDLINE=%~1"
-call :info "Running: %CMDLINE%"
-set "CMDLINE=%CMDLINE:^>=^^^>"
-set "CMDLINE=%CMDLINE:|=^|"
-set "CMDLINE=%CMDLINE:&=^&"
-call cmd /c "%CMDLINE%" >> "%LOGFILE%" 2>&1
+:run_command
+set "RUN_CMD=%~1"
+shift
+call :info "Running: %RUN_CMD% %*"
+"%RUN_CMD%" %* >> "%LOGFILE%" 2>&1
 if errorlevel 1 (
-  call :error "Command failed: %CMDLINE%"
+  call :error "Command failed: %RUN_CMD% %*"
   exit /b 1
 )
 exit /b 0
