@@ -25,6 +25,8 @@
         "winget": true,
         "git init": true,
         "git add": true,
-        "git commit": true
+        "git commit": true,
+        "git remote": true,
+        "git config": true
     }
 }

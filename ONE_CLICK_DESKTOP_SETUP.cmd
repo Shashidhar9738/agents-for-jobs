@@ -62,6 +62,15 @@ if errorlevel 1 (
   goto :fail
 )
 
+set "SYSTEM_CMD=%SystemRoot%\System32\cmd.exe"
+if not exist "!SYSTEM_CMD!" set "SYSTEM_CMD=C:\Windows\System32\cmd.exe"
+if not exist "!SYSTEM_CMD!" (
+  echo [ERROR] Could not find cmd.exe at expected system paths.
+  goto :fail
+)
+set "ComSpec=!SYSTEM_CMD!"
+set "npm_config_script_shell=!SYSTEM_CMD!"
+
 for /f "tokens=*" %%V in ('node -v') do echo [INFO] node %%V
 for /f "tokens=*" %%V in ('npm -v') do echo [INFO] npm %%V
 
@@ -132,6 +141,11 @@ if "!NEEDS_REINSTALL!"=="1" (
 pushd "!N8N_HOME!"
 npm install n8n --legacy-peer-deps --omit=optional --no-audit --no-fund >> "!LOGFILE!" 2>&1
 set "NPM_EXIT=!ERRORLEVEL!"
+if not "!NPM_EXIT!"=="0" (
+  echo [WARN] Standard n8n install failed. Retrying with ignore-scripts fallback... >> "!LOGFILE!"
+  npm install n8n --legacy-peer-deps --omit=optional --no-audit --no-fund --ignore-scripts >> "!LOGFILE!" 2>&1
+  set "NPM_EXIT=!ERRORLEVEL!"
+)
 popd
 
 if not "!NPM_EXIT!"=="0" (
