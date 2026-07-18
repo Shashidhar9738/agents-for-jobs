@@ -1,5 +1,7 @@
 # Prompt: Application Execution
 
+version: 1.0.0
+
 Use this prompt to complete a job application flow accurately and truthfully.
 
 ## Goal

@@ -1,5 +1,7 @@
 # Prompt: Job Search and Shortlist
 
+version: 1.0.0
+
 Use this prompt for the active candidate from `config/workspace.json`.
 
 ## Candidate Context

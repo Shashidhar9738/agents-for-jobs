@@ -1,5 +1,7 @@
 # Prompt: Tailored Cover Letter
 
+version: 1.0.0
+
 Generate a concise, role-specific cover letter based on the target job description and candidate profile.
 
 Candidate source:

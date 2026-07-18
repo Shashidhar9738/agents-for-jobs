@@ -1,5 +1,7 @@
 # Prompt: Resume Optimizer (ATS-Safe)
 
+version: 1.0.0
+
 Tailor resume content for a specific job description while preserving factual accuracy.
 
 Candidate source:

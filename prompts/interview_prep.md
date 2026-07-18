@@ -1,5 +1,7 @@
 # Prompt: Interview Preparation Kit
 
+version: 1.0.0
+
 Generate a focused interview preparation kit after each submitted application.
 
 ## Inputs

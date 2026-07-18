@@ -1,5 +1,7 @@
 # Prompt: Resume Builder (WF03)
 
+version: 1.0.0
+
 Generate a tailored resume package for the active candidate using only verified candidate facts and the target job description.
 
 Inputs:

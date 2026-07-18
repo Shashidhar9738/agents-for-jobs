@@ -1,5 +1,7 @@
 # Prompt: Notification Message
 
+version: 1.0.0
+
 Create a concise application event notification.
 
 Inputs:

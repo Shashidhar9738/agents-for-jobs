@@ -1,5 +1,7 @@
 # Prompt: Interview Preparation
 
+version: 1.0.0
+
 Generate a concise interview preparation package using only:
 - candidate profile
 - tailored resume

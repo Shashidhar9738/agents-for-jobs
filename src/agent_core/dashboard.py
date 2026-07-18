@@ -42,6 +42,7 @@ def build_dashboard(
     prepared = sum(1 for row in tracker_rows if str(row.get("Status", "")) == "Prepared")
     review = sum(1 for row in tracker_rows if str(row.get("Status", "")) == "Review")
     companies = sorted({str(row.get("Company", "")).strip() for row in tracker_rows if str(row.get("Company", "")).strip()})
+    token_usage, estimated_cost, stage_costs = _aggregate_model_usage(application_payloads, wf02_summaries)
 
     summary = {
         "candidate_id": candidate_id,
@@ -53,8 +54,9 @@ def build_dashboard(
         "resume_used_count": len(application_payloads),
         "ai_provider": run_context.get("ai_provider", ""),
         "ai_model": run_context.get("ai_model", ""),
-        "token_usage": 0,
-        "estimated_cost": 0,
+        "token_usage": token_usage,
+        "estimated_cost": estimated_cost,
+        "cost_by_stage": stage_costs,
         "companies": companies,
         "conversion_rate": round((applied / jobs_found) * 100, 2) if jobs_found else 0,
         "interview_call_count": len(interview_payloads),
@@ -80,12 +82,59 @@ def _build_dashboard_markdown(summary: Dict[str, Any]) -> str:
             f"- Pending: {summary.get('pending', 0)}",
             f"- Resume used: {summary.get('resume_used_count', 0)}",
             f"- AI provider/model: {summary.get('ai_provider', '')} / {summary.get('ai_model', '')}",
-            f"- Estimated cost: {summary.get('estimated_cost', 0)}",
+            f"- Tokens used: {summary.get('token_usage', 0):,}",
+            f"- Estimated cost: ${summary.get('estimated_cost', 0):.4f}",
             f"- Conversion rate: {summary.get('conversion_rate', 0)}%",
             f"- Interview calls: {summary.get('interview_call_count', 0)}",
             f"- Companies: {', '.join(summary.get('companies', [])) or 'None'}",
         ]
     )
+
+
+def _aggregate_model_usage(
+    application_payloads: List[Dict[str, Any]],
+    wf02_summaries: List[Dict[str, Any]],
+) -> tuple[int, float, Dict[str, Any]]:
+    """Roll up token and cost telemetry recorded by each workflow stage.
+
+    WF03/WF04 usage arrives per application via Application.json; WF02 scoring
+    usage is per run and lives in the job-search summary.
+    """
+    total_tokens = 0
+    total_cost = 0.0
+    stage_costs: Dict[str, Dict[str, Any]] = {}
+
+    def record(stage: str, usage: Dict[str, Any]) -> None:
+        nonlocal total_tokens, total_cost
+        tokens = int(usage.get("total_tokens", 0) or 0)
+        cost = float(usage.get("estimated_cost_usd", 0.0) or 0.0)
+        if not tokens and not cost:
+            return
+        total_tokens += tokens
+        total_cost += cost
+        bucket = stage_costs.setdefault(stage, {"tokens": 0, "cost_usd": 0.0, "calls": 0})
+        bucket["tokens"] += tokens
+        bucket["cost_usd"] = round(bucket["cost_usd"] + cost, 6)
+        bucket["calls"] += int(usage.get("calls", 0) or 0)
+
+    for payload in application_payloads:
+        model_usage = payload.get("model_usage")
+        if not isinstance(model_usage, dict):
+            continue
+        stages = model_usage.get("stages")
+        if isinstance(stages, dict):
+            for stage_name, stage_usage in stages.items():
+                if isinstance(stage_usage, dict):
+                    record(stage_name, stage_usage)
+        else:
+            record("application", model_usage)
+
+    for summary in wf02_summaries:
+        model_usage = summary.get("model_usage")
+        if isinstance(model_usage, dict):
+            record("wf02_job_matching", model_usage)
+
+    return total_tokens, round(total_cost, 6), stage_costs
 
 
 def _read_csv_rows(csv_path: Path) -> List[Dict[str, Any]]:
