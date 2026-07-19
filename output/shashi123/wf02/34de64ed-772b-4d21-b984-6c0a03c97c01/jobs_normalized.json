@@ -1,0 +1,43 @@
+[
+  {
+    "candidate_id": "shashi123",
+    "company": "Nimbus Telecom",
+    "role_title": "Senior SDET",
+    "location": "Remote - India",
+    "work_mode": "Remote",
+    "job_url": "https://example.com/j1",
+    "source": "linkedin",
+    "posted_date": "",
+    "key_required_skills": [
+      "Java",
+      "Selenium",
+      "API Testing",
+      "Jenkins"
+    ],
+    "job_description": "Senior SDET owning end-to-end automation. Java, Selenium WebDriver, REST API testing, Jenkins CI/CD.",
+    "experience_min_years": null,
+    "experience_max_years": null,
+    "raw_record": {
+      "role_title": "Senior SDET",
+      "company": "Nimbus Telecom",
+      "location": "Remote - India",
+      "job_url": "https://example.com/j1",
+      "job_description": "Senior SDET owning end-to-end automation. Java, Selenium WebDriver, REST API testing, Jenkins CI/CD.",
+      "key_required_skills": [
+        "Java",
+        "Selenium",
+        "API Testing",
+        "Jenkins"
+      ]
+    },
+    "match_score": 23,
+    "decision": "Skip",
+    "reason": "Blended score 23 is below threshold 70",
+    "fit_summary": "Shashidhar's profile lacks any stated experience, skills, or relevant keywords required for a Senior SDET role, making him a poor fit for this position.",
+    "matched_keywords": [],
+    "missing_required_keywords": [],
+    "hard_filtered": false,
+    "deterministic_score": 31,
+    "semantic_score": 10
+  }
+]

@@ -1,0 +1,8 @@
+[WF01] Loading configuration and building run context
+[WF01] Run context ready for candidate 'shashi123'
+[WF02] Searching and scoring jobs
+[WF02] 0 job(s) cleared the match threshold
+[WF08] Aggregating dashboard summary and artifact index
+[WF08] Dashboard updated
+[OK] Full pipeline completed. Processed jobs: 0
+[INFO] Run context: 

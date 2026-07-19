@@ -1,0 +1,20 @@
+{
+  "name": "Shashidhar",
+  "email": "Shashi.Shashi727@gmail.com",
+  "phone": "",
+  "experience_years": 5,
+  "current_title": "",
+  "skills": [],
+  "locations": [
+    "Remote"
+  ],
+  "links": {
+    "linkedin": "",
+    "github": "",
+    "portfolio": ""
+  },
+  "profile_source": {
+    "derived_from": "master_resume",
+    "ingested_at": "2026-07-19T10:35:23.872914+00:00"
+  }
+}
