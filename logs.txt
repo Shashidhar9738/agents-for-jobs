@@ -1,0 +1,10 @@
+[WF01] Loading configuration and building run context
+[WF01] Run context ready for candidate 'shashi123'
+[WF02] Searching and scoring jobs
+[WF02] 0 job(s) cleared the match threshold
+[WF08] Aggregating dashboard summary and artifact index
+[WF08] Dashboard updated
+[OK] Full pipeline completed. Processed jobs: 0
+[INFO] Run context: C:\Users\shash\Videos\agents for job\agents-for-jobs-main\agents-for-jobs\logs\run_context_shashi123_f687ec9e-ae53-4fc1-be0c-dead8a1ea691.json
+[INFO] WF02 output: C:\Users\shash\Videos\agents for job\agents-for-jobs-main\agents-for-jobs\output\shashi123\wf02\f687ec9e-ae53-4fc1-be0c-dead8a1ea691
+[INFO] Dashboard summary: C:\Users\shash\Videos\agents for job\agents-for-jobs-main\agents-for-jobs\output\shashi123\dashboard\dashboard_summary.json

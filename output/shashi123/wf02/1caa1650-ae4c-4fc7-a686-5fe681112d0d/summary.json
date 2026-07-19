@@ -1,0 +1,36 @@
+{
+  "candidate_id": "shashi123",
+  "run_id": "1caa1650-ae4c-4fc7-a686-5fe681112d0d",
+  "input_dir": "C:\\Users\\shash\\Videos\\agents for job\\agents-for-jobs-main\\agents-for-jobs\\data\\job_feeds",
+  "output_dir": "C:\\Users\\shash\\Videos\\agents for job\\agents-for-jobs-main\\agents-for-jobs\\output\\shashi123\\wf02\\1caa1650-ae4c-4fc7-a686-5fe681112d0d",
+  "total_jobs": 1,
+  "apply_count": 0,
+  "review_count": 0,
+  "skip_count": 1,
+  "portals": [
+    "linkedin"
+  ],
+  "scoring_mode": "ai_blended",
+  "prompt_versions": {
+    "system": {
+      "file": "system_prompt.md",
+      "version": "1.0.0"
+    },
+    "job_matcher": {
+      "file": "job_search_prompt.md",
+      "version": "1.0.0"
+    }
+  },
+  "model_usage": {
+    "provider": "openrouter",
+    "model": "openai/gpt-4.1",
+    "calls": 1,
+    "prompt_tokens": 1230,
+    "completion_tokens": 69,
+    "total_tokens": 1299,
+    "estimated_cost_usd": 0.003012,
+    "purposes": [
+      "wf02_job_matching"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "candidate_id": "shashi123",
-  "jobs_found": 1,
+  "jobs_found": 3,
   "applied": 0,
   "prepared": 0,
   "review": 0,
@@ -8,13 +8,13 @@
   "resume_used_count": 0,
   "ai_provider": "openrouter",
   "ai_model": "openai/gpt-4.1",
-  "token_usage": 1245,
-  "estimated_cost": 0.002898,
+  "token_usage": 3842,
+  "estimated_cost": 0.008914,
   "cost_by_stage": {
     "wf02_job_matching": {
-      "tokens": 1245,
-      "cost_usd": 0.002898,
-      "calls": 1
+      "tokens": 3842,
+      "cost_usd": 0.008914,
+      "calls": 3
     }
   },
   "companies": [],
