@@ -1,13 +1,13 @@
 # Dashboard - shashi
-- Jobs found: 3
+- Jobs found: 4
 - Applied: 0
-- Prepared: 0
+- Prepared: 1
 - Review: 0
-- Pending: 2
+- Pending: 1
 - Resume used: 0
 - AI provider/model: openrouter / openai/gpt-4.1
-- Tokens used: 4,537
-- Estimated cost: $0.0105
+- Tokens used: 6,049
+- Estimated cost: $0.0140
 - Conversion rate: 0.0%
 - Interview calls: 0
-- Companies: Senior SDET
+- Companies: Nimbus Telecom

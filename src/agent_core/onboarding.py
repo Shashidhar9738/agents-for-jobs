@@ -9,10 +9,26 @@ from typing import Any, Dict, List
 
 from src.agent_core.auth import ROLE_ADMIN, ROLE_CANDIDATE, AuthError, UserStore
 
-TRACKER_HEADER = (
-    "Date,CandidateId,Company,Role,Location,JobURL,Source,MatchScore,Status,"
-    "Reason,ResumeVersion,CoverLetterVersion,FollowUpDate,Notes\n"
-)
+# Single source of truth for the tracker layout. WF05 appends rows through
+# these same columns, so the header and the rows cannot drift apart.
+TRACKER_COLUMNS = [
+    "Date",
+    "CandidateId",
+    "Company",
+    "Role",
+    "Location",
+    "JobURL",
+    "Source",
+    "MatchScore",
+    "Status",
+    "Reason",
+    "ResumeVersion",
+    "CoverLetterVersion",
+    "FollowUpDate",
+    "Notes",
+]
+
+TRACKER_HEADER = ",".join(TRACKER_COLUMNS) + "\n"
 
 # Registration is open by default: a candidate signing up should not have to know
 # a code. An admin can close it from the dashboard, and the switch lives in config

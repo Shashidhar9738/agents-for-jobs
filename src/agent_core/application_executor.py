@@ -9,6 +9,8 @@ from typing import Any, Dict, List
 
 from PIL import Image, ImageDraw, ImageFont
 
+from src.agent_core.onboarding import TRACKER_COLUMNS
+
 
 class ApplicationExecutionError(ValueError):
     """Raised when WF05 execution inputs are invalid."""
@@ -147,19 +149,25 @@ def _write_screenshot_summary(output_path: Path, application_payload: Dict[str, 
 
 def _append_tracker_row(tracker_csv_path: Path, application_payload: Dict[str, Any]) -> None:
     tracker_csv_path.parent.mkdir(parents=True, exist_ok=True)
-    headers = ["Date", "Company", "Role", "Location", "MatchScore", "Status", "Link"]
     row = {
         "Date": application_payload.get("submitted_at", ""),
+        "CandidateId": application_payload.get("candidate_id", ""),
         "Company": application_payload.get("company", ""),
         "Role": application_payload.get("role_title", ""),
         "Location": application_payload.get("location", ""),
+        "JobURL": application_payload.get("job_url", ""),
+        "Source": application_payload.get("portal", ""),
         "MatchScore": application_payload.get("match_score", ""),
         "Status": application_payload.get("status", ""),
-        "Link": application_payload.get("job_url", ""),
+        "Reason": application_payload.get("reason", ""),
+        "ResumeVersion": Path(str(application_payload.get("resume_used", ""))).name,
+        "CoverLetterVersion": Path(str(application_payload.get("cover_letter_used", ""))).name,
+        "FollowUpDate": "",
+        "Notes": application_payload.get("next_action", ""),
     }
     file_exists = tracker_csv_path.exists()
     with tracker_csv_path.open("a", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=headers)
+        writer = csv.DictWriter(handle, fieldnames=TRACKER_COLUMNS)
         if not file_exists or tracker_csv_path.stat().st_size == 0:
             writer.writeheader()
         writer.writerow(row)

@@ -1,24 +1,24 @@
 {
   "candidate_id": "shashi",
-  "jobs_found": 3,
+  "jobs_found": 4,
   "applied": 0,
-  "prepared": 0,
+  "prepared": 1,
   "review": 0,
-  "pending": 2,
+  "pending": 1,
   "resume_used_count": 0,
   "ai_provider": "openrouter",
   "ai_model": "openai/gpt-4.1",
-  "token_usage": 4537,
-  "estimated_cost": 0.01052,
+  "token_usage": 6049,
+  "estimated_cost": 0.014036,
   "cost_by_stage": {
     "wf02_job_matching": {
-      "tokens": 4537,
-      "cost_usd": 0.01052,
-      "calls": 3
+      "tokens": 6049,
+      "cost_usd": 0.014036,
+      "calls": 4
     }
   },
   "companies": [
-    "Senior SDET"
+    "Nimbus Telecom"
   ],
   "conversion_rate": 0.0,
   "interview_call_count": 0

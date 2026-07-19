@@ -70,9 +70,20 @@ def _channel_status(name: str, config: Dict[str, Any], message: str) -> Dict[str
     destination = str(config.get("to", "")).strip()
     env_keys = [value for key, value in config.items() if key.endswith("_env") and isinstance(value, str)]
     missing_env = [env_key for env_key in env_keys if not os.getenv(env_key)]
+    # An enabled channel that silently skips lets a run look successful while
+    # telling nobody, so say so where the operator will actually see it.
     if not destination:
+        log.warning(
+            "Notification channel '%s' is enabled but has no 'to' address - nothing was sent.",
+            name,
+        )
         return {"channel": name, "status": "skipped", "reason": "Missing destination", "message": message}
     if missing_env:
+        log.warning(
+            "Notification channel '%s' is enabled but these env vars are unset: %s - nothing was sent.",
+            name,
+            ", ".join(missing_env),
+        )
         return {
             "channel": name,
             "status": "skipped",

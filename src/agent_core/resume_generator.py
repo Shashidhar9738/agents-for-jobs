@@ -144,11 +144,23 @@ def _resolve_master_resume_path(repo_root: Path, run_context: Dict[str, Any]) ->
         resume_folder / "resume_master.md",
     ]
     found = next((path for path in candidates if path.exists()), None)
-    if found is None:
-        raise ResumeGenerationError(
-            f"No master resume source found in {resume_folder}. Expected resume_master.pdf, resume_master.txt, or resume_master.md"
-        )
-    return found
+    if found is not None:
+        return found
+
+    # Exact names are preferred, but a suffixed copy (resume_master1.pdf,
+    # resume_master_v2.pdf) is a normal way to keep a newer draft around and
+    # should not stop the run. Newest wins.
+    suffixed = [
+        path
+        for path in sorted(resume_folder.glob("resume_master*"))
+        if path.is_file() and path.suffix.lower() in {".pdf", ".txt", ".md"}
+    ]
+    if suffixed:
+        return max(suffixed, key=lambda path: path.stat().st_mtime)
+
+    raise ResumeGenerationError(
+        f"No master resume source found in {resume_folder}. Expected resume_master.pdf, resume_master.txt, or resume_master.md"
+    )
 
 
 def _extract_resume_text(master_resume_path: Path) -> str:
