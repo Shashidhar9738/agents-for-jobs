@@ -27,7 +27,8 @@ $EnvFile    = Join-Path $Workspace '.env'
 $N8NHome    = Join-Path $env:LOCALAPPDATA 'AIJobAgent\n8n'
 $N8NBin     = Join-Path $N8NHome 'node_modules\.bin\n8n.cmd'
 $Marker     = Join-Path $N8NHome '.setup-complete'
-$N8NVersion = '1.50.0'
+# UPDATED: Using n8n version 2.22.6 (current stable)
+$N8NVersion = '2.22.6'
 
 Set-Location $Workspace
 
@@ -60,8 +61,9 @@ if (-not (Test-Path $N8NHome)) {
 Write-Host '================================================' -ForegroundColor Cyan
 Write-Host ' AI Job Agent' -ForegroundColor Cyan
 Write-Host '================================================' -ForegroundColor Cyan
-Write-Host " Workspace : $Workspace"
-Write-Host " n8n home  : $N8NHome"
+Write-Host " Workspace    : $Workspace"
+Write-Host " n8n home     : $N8NHome"
+Write-Host " n8n version  : $N8NVersion" -ForegroundColor Yellow
 Write-Host '================================================' -ForegroundColor Cyan
 Write-Host ''
 
@@ -88,9 +90,16 @@ foreach ($line in (Get-Content $EnvFile)) {
 }
 
 if (-not $env:N8N_PORT)          { $env:N8N_PORT = '5678' }
-if (-not $env:N8N_HOST)          { $env:N8N_HOST = '0.0.0.0' }
+if (-not $env:N8N_HOST)          { $env:N8N_HOST = 'localhost' }
 if (-not $env:N8N_SECURE_COOKIE) { $env:N8N_SECURE_COOKIE = 'false' }
 $env:N8N_USER_FOLDER = $N8NHome
+
+# Build the URL once and use it everywhere
+$N8N_URL = "http://${env:N8N_HOST}:${env:N8N_PORT}"
+
+# DEBUG: Show exactly what URL we're building
+Write-Host "[DEBUG] Built URL: '$N8N_URL'" -ForegroundColor Magenta
+Write-Host ""
 
 # --------------------------- NODE DISCOVERY ---------------------------------
 
@@ -145,7 +154,8 @@ function Invoke-Provision {
     # --- Node
     if (-not $script:Node) {
         Write-Host '[STEP] Installing Node.js...' -ForegroundColor Yellow
-        $nodeVersion   = '22.11.0'
+        # UPDATED: Node.js 20.x LTS is recommended for n8n 2.x
+        $nodeVersion   = '20.18.0'
         $nodeInstaller = Join-Path $env:TEMP "node-v$nodeVersion-x64.msi"
         $nodeUrl       = "https://nodejs.org/dist/v$nodeVersion/node-v$nodeVersion-x64.msi"
 
@@ -265,7 +275,8 @@ requests>=2.32.0
     }
 
     Write-Host '[INFO] Installing n8n (this may take a few minutes)...' -ForegroundColor Cyan
-    $npmArgs = @("n8n@$N8NVersion", '--legacy-peer-deps', '--omit=optional', '--no-audit', '--no-fund')
+    # UPDATED: Simplified flags for n8n 2.x
+    $npmArgs = @("n8n@$N8NVersion", '--legacy-peer-deps')
     $code = Invoke-Logged $npm (@('install') + $npmArgs) $N8NHome
     if ($code -ne 0) {
         Write-Log '[WARN] Standard n8n install failed. Retrying with --ignore-scripts...' 'Yellow'
@@ -306,6 +317,45 @@ requests>=2.32.0
     return $true
 }
 
+# Function to open browser with proper URL
+function Open-Browser {
+    param([string]$Url)
+    
+    Write-Host "[DEBUG] Opening browser with URL: '$Url'" -ForegroundColor Magenta
+    
+    # Method 1: Try Start-Process with the URL as a string
+    try {
+        Start-Process $Url
+        Write-Host "[INFO] Browser opened with Start-Process" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "[WARN] Start-Process failed: $_" -ForegroundColor Yellow
+    }
+    
+    # Method 2: Try with explorer.exe
+    try {
+        Start-Process "explorer.exe" $Url
+        Write-Host "[INFO] Browser opened with explorer.exe" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "[WARN] explorer.exe failed: $_" -ForegroundColor Yellow
+    }
+    
+    # Method 3: Try with cmd /c start
+    try {
+        Start-Process -FilePath "cmd.exe" -ArgumentList "/c start `"$Url`""
+        Write-Host "[INFO] Browser opened with cmd /c start" -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "[WARN] cmd /c start failed: $_" -ForegroundColor Yellow
+    }
+    
+    Write-Host "[ERROR] All browser opening methods failed." -ForegroundColor Red
+    Write-Host "[INFO] Please manually open your browser and navigate to:" -ForegroundColor Yellow
+    Write-Host "      $Url" -ForegroundColor Green
+    return $false
+}
+
 # --------------------------- LAUNCH -----------------------------------------
 
 function Invoke-Launch {
@@ -329,17 +379,38 @@ function Invoke-Launch {
     Write-Host ''
     if ($exe) {
         Write-Host "[INFO] Starting n8n from: $exe" -ForegroundColor Cyan
+        Write-Host "[INFO] n8n version: $N8NVersion" -ForegroundColor Cyan
     } else {
         Write-Host '[WARN] n8n not found locally - falling back to npx.' -ForegroundColor Yellow
         Write-Host "[WARN] Run '.\AI_JOB_AGENT.ps1 setup' for a proper install." -ForegroundColor Yellow
     }
 
-    $displayHost = if ($env:N8N_HOST -eq '0.0.0.0') { 'localhost' } else { $env:N8N_HOST }
-    Write-Host "[INFO] URL: http://${displayHost}:$($env:N8N_PORT)" -ForegroundColor Cyan
+    # Show the URL clearly
+    Write-Host ""
+    Write-Host "================================================" -ForegroundColor Cyan
+    Write-Host " n8n URL: $N8N_URL" -ForegroundColor Green
+    Write-Host "================================================" -ForegroundColor Cyan
     Write-Host "[INFO] N8N_SECURE_COOKIE=$($env:N8N_SECURE_COOKIE)" -ForegroundColor Cyan
     Write-Host '[INFO] Press Ctrl+C to stop n8n' -ForegroundColor Yellow
     Write-Host ''
 
+    # Open browser after a short delay (wait for n8n to start)
+    Write-Host '[INFO] Starting n8n, will open browser in 5 seconds...' -ForegroundColor Cyan
+    
+    # Start a background job to open the browser after n8n starts
+    $browserJob = Start-Job -ScriptBlock {
+        param($Url)
+        Start-Sleep -Seconds 5
+        try {
+            Start-Process $Url
+            Write-Host "[INFO] Browser opened automatically" -ForegroundColor Green
+        } catch {
+            Write-Host "[WARN] Could not open browser automatically" -ForegroundColor Yellow
+            Write-Host "[INFO] Please manually open: $Url" -ForegroundColor Green
+        }
+    } -ArgumentList $N8N_URL
+
+    # Actually start n8n (only once!)
     if ($exe) {
         & $exe start
     } else {
@@ -348,6 +419,11 @@ function Invoke-Launch {
             exit 1
         }
         & $script:Node.Npx --yes "n8n@$N8NVersion" start
+    }
+
+    # Clean up the background job when n8n exits
+    if ($browserJob) {
+        Remove-Job $browserJob -Force -ErrorAction SilentlyContinue
     }
 
     if ($LASTEXITCODE -ne 0) {
@@ -367,17 +443,16 @@ if ($Mode -eq 'setup') {
         Out-File -FilePath $Marker -Encoding utf8
     Write-Log '[INFO] Setup completed.' 'Green'
 
-    $displayHost = if ($env:N8N_HOST -eq '0.0.0.0') { 'localhost' } else { $env:N8N_HOST }
     Write-Host ''
     Write-Host '================================================' -ForegroundColor Cyan
     Write-Host ' SETUP COMPLETE' -ForegroundColor Green
     Write-Host '================================================' -ForegroundColor Cyan
-    Write-Host " Desktop : http://${displayHost}:$($env:N8N_PORT)"
-    Write-Host " Laptop  : http://YOUR_DESKTOP_IP:$($env:N8N_PORT)"
-    Write-Host " n8n home: $N8NHome"
-    Write-Host ' Import  : n8n-job-agent-workflow.json'
+    Write-Host " n8n URL    : $N8N_URL" -ForegroundColor Green
+    Write-Host " n8n version: $N8NVersion" -ForegroundColor Green
+    Write-Host " n8n home   : $N8NHome"
+    Write-Host ' Import     : n8n-job-agent-workflow.json'
     Write-Host ''
-    Write-Host ' n8n 1.x does not use N8N_BASIC_AUTH_* - on first launch the browser'
+    Write-Host ' n8n 2.x does not use N8N_BASIC_AUTH_* - on first launch the browser'
     Write-Host ' will ask you to create an owner account. Credentials are not printed.'
     Write-Host '================================================' -ForegroundColor Cyan
     Write-Host ''
