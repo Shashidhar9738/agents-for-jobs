@@ -302,21 +302,49 @@ def _parse_answers_markdown(text: str) -> List[Dict[str, Any]]:
     return [section for section in sections if section["items"]]
 
 
+_STAGE_LINE = re.compile(r"^\[(WF\d{2}|JOB)\]")
+
+
+def _stage_from_line(line: str) -> str | None:
+    """Pull the stage marker out of a progress line, e.g. '[WF03] ...' -> 'WF03'."""
+    match = _STAGE_LINE.match(line)
+    return match.group(1) if match else None
+
+
 def _run_pipeline(candidate_id: str) -> None:
     global _run_state
     started = datetime.now(timezone.utc).isoformat()
-    _run_state = {"status": "running", "started_at": started, "finished_at": None, "log": []}
+    _run_state = {
+        "status": "running",
+        "started_at": started,
+        "finished_at": None,
+        "log": [],
+        "stage": None,
+    }
     try:
-        completed = subprocess.run(
-            [sys.executable, "scripts/run_full_pipeline.py", "--candidate", candidate_id],
+        # Streamed, not captured: subprocess.run() would buffer the whole run and
+        # hand it over only after the pipeline exited, so the log stayed empty
+        # for the entire time the operator was watching it. Reading line by line
+        # lets /api/run-status report each stage as it happens.
+        process = subprocess.Popen(
+            [sys.executable, "-u", "scripts/run_full_pipeline.py", "--candidate", candidate_id],
             cwd=str(REPO_ROOT),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            timeout=1800,
+            bufsize=1,
         )
-        output = (completed.stdout or "") + (completed.stderr or "")
-        _run_state["log"] = output.strip().splitlines()[-80:]
-        _run_state["status"] = "success" if completed.returncode == 0 else "failed"
+        lines: List[str] = []
+        assert process.stdout is not None
+        for line in process.stdout:
+            line = line.rstrip()
+            if not line:
+                continue
+            lines.append(line)
+            # Rebind rather than mutate: a reader may hold the old list.
+            _run_state = {**_run_state, "log": lines[-80:], "stage": _stage_from_line(line)}
+        process.wait(timeout=1800)
+        _run_state["status"] = "success" if process.returncode == 0 else "failed"
     except Exception:
         _run_state["status"] = "failed"
         _run_state["log"] = traceback.format_exc().splitlines()[-40:]

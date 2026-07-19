@@ -1,0 +1,43 @@
+[
+  {
+    "candidate_id": "shashi",
+    "company": "Nimbus Telecom",
+    "role_title": "Senior SDET",
+    "location": "Remote - India",
+    "work_mode": "Remote",
+    "job_url": "https://example.com/j1",
+    "source": "linkedin",
+    "posted_date": "",
+    "key_required_skills": [
+      "Java",
+      "Selenium",
+      "API Testing",
+      "Jenkins"
+    ],
+    "job_description": "Senior SDET owning end-to-end automation. Java, Selenium WebDriver, REST API testing, Jenkins CI/CD.",
+    "experience_min_years": null,
+    "experience_max_years": null,
+    "raw_record": {
+      "role_title": "Senior SDET",
+      "company": "Nimbus Telecom",
+      "location": "Remote - India",
+      "job_url": "https://example.com/j1",
+      "job_description": "Senior SDET owning end-to-end automation. Java, Selenium WebDriver, REST API testing, Jenkins CI/CD.",
+      "key_required_skills": [
+        "Java",
+        "Selenium",
+        "API Testing",
+        "Jenkins"
+      ]
+    },
+    "match_score": 83,
+    "decision": "Apply",
+    "reason": "Blended keyword and semantic score 83 meets threshold 80",
+    "fit_summary": "Shashidhar has 5 years of experience as a Senior QA Automation Engineer with strong skills in Java, Selenium WebDriver, REST API testing, and Jenkins, matching all key requirements for the Senior SDET role at Nimbus Telecom.",
+    "matched_keywords": [],
+    "missing_required_keywords": [],
+    "hard_filtered": false,
+    "deterministic_score": 75,
+    "semantic_score": 95
+  }
+]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List
@@ -22,6 +23,17 @@ from src.agent_core.notifications import dispatch_notifications
 from src.agent_core.resume_generator import generate_resume_bundle
 
 
+def _progress(stage: str, message: str) -> None:
+    """Announce a stage as it happens.
+
+    The dashboard streams this process's stdout straight into its run log, so
+    anything printed here is what the operator watches live. Flush every line:
+    a pipe is block-buffered by default and the whole run would otherwise
+    arrive at once, after it had already finished.
+    """
+    print(f"[{stage}] {message}", flush=True)
+
+
 @dataclass
 class FullPipelineResult:
     run_context_path: Path
@@ -36,14 +48,21 @@ def run_full_pipeline(
     candidate_id: str | None,
     job_feed_input_dir: Path,
 ) -> FullPipelineResult:
+    _progress("WF01", "Loading configuration and building run context")
     run_context = build_runtime_context(repo_root, candidate_override=candidate_id)
     run_context_path = persist_runtime_context(repo_root, run_context)
+    _progress("WF01", f"Run context ready for candidate '{run_context.get('candidate_id', '')}'")
+
+    _progress("WF02", "Searching and scoring jobs")
     wf02_result = run_job_search(repo_root, run_context, input_dir=job_feed_input_dir)
 
     eligible_jobs = json.loads(wf02_result.eligible_jobs_path.read_text(encoding="utf-8"))
     profile_name = _active_profile_name(run_context)
+    _progress("WF02", f"{len(eligible_jobs)} job(s) cleared the match threshold")
     processed_jobs = 0
-    for job in eligible_jobs:
+    for index, job in enumerate(eligible_jobs, start=1):
+        label = f"{job.get('company', 'unknown')} / {job.get('role_title', 'unknown')}"
+        _progress("JOB", f"{index} of {len(eligible_jobs)} - {label}")
         staging_dir = _job_artifact_dir(wf02_result.output_dir, job)
 
         # Spec section 5 layout: Profiles/<candidate>/<profile>/<company>/<role>/.
@@ -76,9 +95,14 @@ def run_full_pipeline(
                 str(master_resume),
             )
 
+        _progress("WF03", "Generating tailored resume")
         resume_result = generate_resume_bundle(repo_root, run_context, artifact_dir)
         append_log(artifact_dir, "WF03", "generate_resume", "OK", f"mode={resume_result.generation_mode}")
+        _progress("WF03", f"Resume written (mode={resume_result.generation_mode})")
+
+        _progress("WF04", "Generating cover letter")
         cover_letter_result = generate_cover_letter_bundle(repo_root, run_context, artifact_dir)
+        _progress("WF04", f"Cover letter written (mode={cover_letter_result.generation_mode})")
         append_log(
             artifact_dir,
             "WF04",
@@ -95,22 +119,31 @@ def run_full_pipeline(
                 ("wf04_cover_letter", cover_letter_result.prompt_versions, cover_letter_result.model_usage),
             ]
         )
+        _progress("WF05", "Assembling application and updating the tracker")
         application_result = execute_application(
             repo_root, run_context, artifact_dir, provenance=provenance
         )
         append_log(artifact_dir, "WF05", "execute_application", application_result.status)
+        _progress("WF05", f"Application status: {application_result.status}")
+
+        _progress("WF06", "Dispatching notifications")
         dispatch_notifications(repo_root, run_context, artifact_dir)
         append_log(artifact_dir, "WF06", "dispatch_notifications", "OK")
 
         # Interview prep is the point of the folder for the candidate, so it runs
         # whenever an application was actually submitted.
         if application_result.status == "Applied":
+            _progress("WF07", "Generating interview preparation")
             generate_interview_prep(repo_root, run_context, artifact_dir)
             append_log(artifact_dir, "WF07", "generate_interview_prep", "OK")
+        else:
+            _progress("WF07", f"Skipped - status is '{application_result.status}', not 'Applied'")
         processed_jobs += 1
 
+    _progress("WF08", "Aggregating dashboard summary and artifact index")
     dashboard_result = build_dashboard(repo_root, run_context)
     artifact_index_path = _write_artifact_index(repo_root, run_context)
+    _progress("WF08", "Dashboard updated")
     return FullPipelineResult(
         run_context_path=run_context_path,
         wf02_output_dir=wf02_result.output_dir,

@@ -1,13 +1,13 @@
 # Dashboard - shashi
-- Jobs found: 8
+- Jobs found: 10
 - Applied: 0
-- Prepared: 9
+- Prepared: 11
 - Review: 0
-- Pending: 9
+- Pending: 11
 - Resume used: 0
 - AI provider/model: openrouter / openai/gpt-4.1
-- Tokens used: 12,136
-- Estimated cost: $0.0283
+- Tokens used: 15,184
+- Estimated cost: $0.0354
 - Conversion rate: 0.0%
 - Interview calls: 0
 - Companies: Nimbus Telecom
