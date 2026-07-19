@@ -33,6 +33,7 @@ init_runtime(REPO_ROOT)
 from src.agent_core.artifact_store import build_index  # noqa: E402
 from src.agent_core.config_loader import build_runtime_context  # noqa: E402
 from src.agent_core.auth import (  # noqa: E402
+    ROLE_ADMIN,
     SessionStore,
     User,
     UserStore,
@@ -503,7 +504,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"ok": true}   '[:15])
             return
 
-        if self._current_user() is None:
+        # Stage routes do their own check: they additionally accept a loopback
+        # caller (n8n on this machine) without a token.
+        if self._current_user() is None and not route.startswith("/api/stage/"):
             self._send_json({"error": "authentication required"}, 401)
             return
 
@@ -768,10 +771,24 @@ class DashboardHandler(BaseHTTPRequestHandler):
         suggestions = _suggest_portals(context)
         self._send_json({"ok": True, "suggestions": suggestions})
 
+    def _is_loopback(self) -> bool:
+        """True when the caller is a process on this same machine."""
+        return self.client_address[0] in {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+
     def _handle_stage(self, stage: str) -> None:
-        """Run one pipeline stage. This is what each n8n workflow node calls."""
-        user = self._require_user()
+        """Run one pipeline stage. This is what each n8n workflow node calls.
+
+        Stage endpoints accept a loopback caller without a token, because n8n runs
+        beside this service and matching a shared secret across two config files is
+        a needless failure mode. The trust is deliberately narrow: it applies only
+        to /api/stage/*, never to the dashboard, files, or credential routes, so a
+        local caller can start a run but cannot read anyone's data.
+        """
+        user = self._current_user()
+        if user is None and self._is_loopback():
+            user = User(username="localhost", role=ROLE_ADMIN, candidate_id=None)
         if user is None:
+            self._send_json({"error": "authentication required"}, 401)
             return
 
         body = self._read_json_body()
