@@ -1,0 +1,478 @@
+PS C:\Users\shash> where.exe n8n
+C:\Users\shash\AppData\Roaming\npm\n8n
+C:\Users\shash\AppData\Roaming\npm\n8n.cmd
+
+n8n is installed here 
+
+
+
+# ============================================================================
+#  AI Job Agent - provision and launch (PowerShell Version)
+#
+#  Double-click this file or run in PowerShell. It works out what needs doing:
+#    first run  -> installs Python deps, Playwright, Node, n8n; then launches
+#    later runs -> launches n8n straight away
+#
+#  Explicit modes:
+#    .\AI_JOB_AGENT.ps1 setup   force a full re-provision
+#    .\AI_JOB_AGENT.ps1 start   skip provisioning, launch only
+#
+#  This PowerShell version replaces the batch file and handles n8n detection
+#  with proper environment variable management.
+# ============================================================================
+
+param(
+    [Parameter(Position=0)]
+    [ValidateSet('auto', 'setup', 'start')]
+    [string]$Mode = 'auto'
+)
+
+# Set error handling
+$ErrorActionPreference = "Stop"
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Get script directory
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $ScriptDir
+
+# Configuration
+$Workspace = $ScriptDir
+$LogFile = Join-Path $Workspace "setup.log"
+$EnvFile = Join-Path $Workspace ".env"
+$N8NHome = Join-Path $env:LOCALAPPDATA "AIJobAgent\n8n"
+$N8NBin = Join-Path $N8NHome "node_modules\.bin\n8n.cmd"
+$Marker = Join-Path $N8NHome ".setup-complete"
+$N8NVersion = "1.50.0"
+
+# Create N8N home if it doesn't exist
+if (-not (Test-Path $N8NHome)) {
+    New-Item -ItemType Directory -Path $N8NHome -Force | Out-Null
+}
+
+# Display header
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host " AI Job Agent (PowerShell)" -ForegroundColor Cyan
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host " Workspace : $Workspace"
+Write-Host " n8n home  : $N8NHome"
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Load environment variables
+if (-not (Test-Path $EnvFile)) {
+    Write-Host "[ERROR] No .env found at $EnvFile" -ForegroundColor Red
+    Write-Host "[ERROR] Copy .env.example to .env and fill it in, then re-run." -ForegroundColor Red
+    exit 1
+}
+
+# Load .env file
+Get-Content $EnvFile | ForEach-Object {
+    if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+        $name = $matches[1].Trim()
+        $value = $matches[2].Trim()
+        if ($value -match '^"(.+)"$' -or $value -match "^'(.+)'$") {
+            $value = $matches[1]
+        }
+        Set-Item -Path "env:$name" -Value $value
+    }
+}
+
+# Set default values if not defined
+if (-not (Test-Path env:N8N_PORT)) { $env:N8N_PORT = "5678" }
+if (-not (Test-Path env:N8N_HOST)) { $env:N8N_HOST = "0.0.0.0" }
+if (-not (Test-Path env:N8N_SECURE_COOKIE)) { $env:N8N_SECURE_COOKIE = "false" }
+
+# Find Node.js
+$NodeExe = $null
+$NodeDir = $null
+$NpmCmd = $null
+
+# Check for existing Node installations
+$NodePaths = @(
+    (Join-Path $env:LOCALAPPDATA "Programs\Nodejs\node.exe"),
+    (Join-Path $env:ProgramFiles "nodejs\node.exe"),
+    (Join-Path $env:ProgramFiles "nodejs\node.exe"),
+    (Get-Command node -ErrorAction SilentlyContinue).Source
+)
+
+foreach ($path in $NodePaths) {
+    if ($path -and (Test-Path $path)) {
+        $NodeExe = $path
+        $NodeDir = Split-Path -Parent $path
+        $NpmCmd = Join-Path $NodeDir "npm.cmd"
+        if (Test-Path $NpmCmd) {
+            break
+        }
+    }
+}
+
+# If Node not found, we need to provision
+if (-not $NodeExe) {
+    Write-Host "[INFO] Node.js not found. Will install during provisioning." -ForegroundColor Yellow
+}
+
+# Determine mode
+if ($Mode -eq "auto") {
+    $Mode = "start"
+    if (-not (Test-Path $Marker)) { $Mode = "setup" }
+    if (-not (Test-Path $N8NBin)) { $Mode = "setup" }
+    if (-not $NodeExe) { $Mode = "setup" }
+}
+
+Write-Host "[INFO] Mode: $Mode" -ForegroundColor Green
+Write-Host ""
+
+if ($Mode -eq "start") {
+    goto Launch
+}
+
+# =========================== PROVISIONING ==================================
+
+# Write log start
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+"[$timestamp] Setup started" | Out-File -FilePath $LogFile -Encoding UTF8
+"[INFO] Workspace: $Workspace" | Out-File -FilePath $LogFile -Append -Encoding UTF8
+
+# Create directories
+@("data", "output", "logs") | ForEach-Object {
+    $dir = Join-Path $Workspace $_
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    }
+}
+
+# --- Node: install if not present
+if (-not $NodeExe) {
+    Write-Host "[STEP] Installing Node.js..." -ForegroundColor Yellow
+    
+    # Download Node.js installer
+    $NodeVersion = "22.11.0"
+    $NodeInstaller = Join-Path $env:TEMP "node-v$NodeVersion-x64.msi"
+    $NodeUrl = "https://nodejs.org/dist/v$NodeVersion/node-v$NodeVersion-x64.msi"
+    
+    Write-Host "[INFO] Downloading Node.js $NodeVersion..." -ForegroundColor Cyan
+    Invoke-WebRequest -Uri $NodeUrl -OutFile $NodeInstaller -UseBasicParsing
+    
+    Write-Host "[INFO] Installing Node.js (this may take a moment)..." -ForegroundColor Cyan
+    $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$NodeInstaller`" /quiet /norestart" -Wait -PassThru
+    
+    if ($process.ExitCode -eq 0) {
+        Write-Host "[INFO] Node.js installed successfully" -ForegroundColor Green
+        # Refresh PATH
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        
+        # Find Node again
+        $NodeExe = (Get-Command node -ErrorAction SilentlyContinue).Source
+        $NodeDir = Split-Path -Parent $NodeExe
+        $NpmCmd = Join-Path $NodeDir "npm.cmd"
+    } else {
+        Write-Host "[ERROR] Node.js installation failed" -ForegroundColor Red
+        exit 1
+    }
+}
+
+Write-Host "[INFO] Node: $NodeExe" -ForegroundColor Green
+"[INFO] Node: $NodeExe" | Out-File -FilePath $LogFile -Append -Encoding UTF8
+
+# --- Python
+$PythonCmd = $null
+
+# Try to find Python
+$PythonPaths = @(
+    "py",
+    "python",
+    "python3",
+    (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe"),
+    (Join-Path $env:LOCALAPPDATA "Programs\Python\Python311\python.exe"),
+    (Join-Path $env:LOCALAPPDATA "Programs\Python\Python310\python.exe"),
+    (Join-Path $env:ProgramFiles "Python312\python.exe"),
+    (Join-Path $env:ProgramFiles "Python311\python.exe"),
+    (Join-Path $env:ProgramFiles "Python310\python.exe")
+)
+
+foreach ($path in $PythonPaths) {
+    if ($path -match '\.exe$') {
+        if (Test-Path $path) {
+            $PythonCmd = $path
+            break
+        }
+    } else {
+        $cmd = (Get-Command $path -ErrorAction SilentlyContinue).Source
+        if ($cmd) {
+            $PythonCmd = $cmd
+            break
+        }
+    }
+}
+
+if (-not $PythonCmd) {
+    Write-Host "[ERROR] Python not found. Install from https://python.org and re-run." -ForegroundColor Red
+    "[ERROR] Python not found" | Out-File -FilePath $LogFile -Append -Encoding UTF8
+    exit 1
+}
+
+Write-Host "[INFO] Python: $PythonCmd" -ForegroundColor Green
+"[INFO] Python: $PythonCmd" | Out-File -FilePath $LogFile -Append -Encoding UTF8
+
+# Create requirements file
+$RequirementsFile = Join-Path $Workspace "requirements-agent.txt"
+if (-not (Test-Path $RequirementsFile)) {
+    Write-Host "[INFO] Creating requirements-agent.txt" -ForegroundColor Cyan
+    @"
+langgraph>=0.2.0
+openai>=1.40.0
+playwright>=1.50.0
+pandas>=2.2.0
+python-dotenv>=1.0.0
+beautifulsoup4>=4.12.0
+lxml>=5.2.0
+requests>=2.32.0
+"@ | Out-File -FilePath $RequirementsFile -Encoding UTF8
+}
+
+# Install Python packages
+Write-Host ""
+Write-Host "[STEP] Upgrading pip..." -ForegroundColor Yellow
+& $PythonCmd -m pip install --upgrade pip >> $LogFile 2>&1
+
+Write-Host "[STEP] Installing Python packages..." -ForegroundColor Yellow
+& $PythonCmd -m pip install -r $RequirementsFile >> $LogFile 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Python package install failed. Check setup.log" -ForegroundColor Red
+    exit 1
+}
+Write-Host "[INFO] Python packages installed." -ForegroundColor Green
+
+# Install Playwright
+Write-Host "[STEP] Downloading Playwright Chromium..." -ForegroundColor Yellow
+& $PythonCmd -m playwright install chromium >> $LogFile 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[WARN] Playwright download failed - run manually: py -m playwright install chromium" -ForegroundColor Yellow
+}
+
+# --- n8n
+Write-Host "[STEP] Installing n8n v$N8NVersion in user profile (no admin needed)..." -ForegroundColor Yellow
+
+# Initialize npm if needed
+$PackageJson = Join-Path $N8NHome "package.json"
+if (-not (Test-Path $PackageJson)) {
+    Push-Location $N8NHome
+    & $NpmCmd init -y >> $LogFile 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Write-Host "[ERROR] n8n bootstrap failed. Check setup.log" -ForegroundColor Red
+        exit 1
+    }
+    Pop-Location
+}
+
+# Check if reinstall needed
+$NeedsReinstall = $false
+if (-not (Test-Path $N8NBin)) { $NeedsReinstall = $true }
+
+if (-not $NeedsReinstall) {
+    # Check version
+    Push-Location $N8NHome
+    $versionCheck = & $NpmCmd ls n8n@$N8NVersion --depth=0 2>&1
+    if ($LASTEXITCODE -ne 0) { $NeedsReinstall = $true }
+    Pop-Location
+}
+
+if ($NeedsReinstall) {
+    Write-Host "[WARN] Missing, broken, or wrong-version n8n detected. Reinstalling..." -ForegroundColor Yellow
+    if (Test-Path (Join-Path $N8NHome "node_modules")) {
+        Remove-Item -Recurse -Force (Join-Path $N8NHome "node_modules")
+    }
+    if (Test-Path (Join-Path $N8NHome "package-lock.json")) {
+        Remove-Item -Force (Join-Path $N8NHome "package-lock.json")
+    }
+}
+
+# Install n8n
+Push-Location $N8NHome
+Write-Host "[INFO] Installing n8n (this may take a few minutes)..." -ForegroundColor Cyan
+& $NpmCmd install n8n@$N8NVersion --legacy-peer-deps --omit=optional --no-audit --no-fund >> $LogFile 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[WARN] Standard n8n install failed. Retrying with ignore-scripts..." -ForegroundColor Yellow
+    & $NpmCmd install n8n@$N8NVersion --legacy-peer-deps --omit=optional --no-audit --no-fund --ignore-scripts >> $LogFile 2>&1
+}
+if ($LASTEXITCODE -ne 0) {
+    Pop-Location
+    Write-Host "[WARN] npm install failed - will fall back to npx at launch." -ForegroundColor Yellow
+    $env:USE_NPX = "1"
+    goto Provisioned
+}
+Pop-Location
+
+# Verify n8n health
+Write-Host "[STEP] Verifying n8n installation..." -ForegroundColor Yellow
+$N8nHealthy = $false
+if (Test-Path $N8NHome) {
+    Push-Location $N8NHome
+    $testScript = "try { require('sqlite3'); console.log('ok') } catch(e) { process.exit(1) }"
+    $result = & $NodeExe -e $testScript 2>&1
+    if ($LASTEXITCODE -eq 0) { $N8nHealthy = $true }
+    Pop-Location
+}
+
+if (-not $N8nHealthy) {
+    Write-Host "[WARN] n8n installed but sqlite3 has no native binding - repairing." -ForegroundColor Yellow
+    Push-Location $N8NHome
+    $env:npm_config_ignore_scripts = "false"
+    & $NpmCmd rebuild sqlite3 >> $LogFile 2>&1
+    $result = & $NodeExe -e $testScript 2>&1
+    if ($LASTEXITCODE -eq 0) { $N8nHealthy = $true }
+    Pop-Location
+    if ($N8nHealthy) {
+        Write-Host "[INFO] sqlite3 repaired." -ForegroundColor Green
+    } else {
+        Write-Host "[WARN] sqlite3 rebuild failed - falling back to a full reinstall." -ForegroundColor Yellow
+    }
+}
+
+if (-not $N8nHealthy) {
+    Write-Host "[ERROR] n8n installed but cannot load sqlite3, and the rebuild failed." -ForegroundColor Red
+    Write-Host "[ERROR] Usually this means node-gyp had to compile from source." -ForegroundColor Red
+    Write-Host "[FIX]   Install 'Desktop development with C++' via Visual Studio Build" -ForegroundColor Red
+    Write-Host "[FIX]   Tools, then re-run: .\AI_JOB_AGENT.ps1 setup" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "[INFO] n8n installed and verified." -ForegroundColor Green
+
+:Provisioned
+# Write completion marker
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+"[$timestamp] Setup completed" | Out-File -FilePath $Marker -Encoding UTF8
+"[$timestamp] Setup completed" | Out-File -FilePath $LogFile -Append -Encoding UTF8
+
+Write-Host ""
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host " SETUP COMPLETE" -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host " Desktop : http://localhost:$env:N8N_PORT"
+Write-Host " Laptop  : http://YOUR_DESKTOP_IP:$env:N8N_PORT"
+Write-Host " n8n home: $N8NHome"
+Write-Host " Import  : n8n\job-application-agent.workflow.json"
+Write-Host ""
+Write-Host " n8n 1.x does not use N8N_BASIC_AUTH_* - on first launch the browser"
+Write-Host " will ask you to create an owner account. Credentials are not printed."
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Launch n8n
+goto Launch
+
+# =========================== LAUNCH ========================================
+
+:Launch
+# Check for existing n8n installations
+$UseSystemN8N = $false
+$N8nExecutable = $null
+
+# Check if n8n is in PATH (system installation)
+$systemN8n = (Get-Command n8n -ErrorAction SilentlyContinue).Source
+if ($systemN8n) {
+    $UseSystemN8N = $true
+    $N8nExecutable = "n8n"
+    Write-Host "[INFO] Found system n8n in PATH - will use this installation" -ForegroundColor Green
+    Write-Host "[INFO] Using system n8n - run with: n8n" -ForegroundColor Cyan
+    goto LaunchN8nSystem
+}
+
+# Check local installation
+if (Test-Path $N8NBin) {
+    $N8nExecutable = $N8NBin
+    Write-Host "[INFO] Found n8n in local installation" -ForegroundColor Green
+    goto LaunchN8nLocal
+}
+
+# Check alternative locations
+$AlternativePaths = @(
+    "$env:USERPROFILE\AppData\Roaming\npm\node_modules\n8n\bin\n8n.cmd",
+    "$env:ProgramFiles\nodejs\node_modules\n8n\bin\n8n.cmd",
+    "$Workspace\node_modules\.bin\n8n.cmd"
+)
+
+foreach ($path in $AlternativePaths) {
+    if (Test-Path $path) {
+        $N8nExecutable = $path
+        Write-Host "[INFO] Found n8n at: $path" -ForegroundColor Green
+        goto LaunchN8nLocal
+    }
+}
+
+# No n8n found - fallback to npx
+Write-Host "[WARN] n8n not found in any location." -ForegroundColor Yellow
+Write-Host "[WARN] Falling back to npx. Run '.\AI_JOB_AGENT.ps1 setup' for a proper install." -ForegroundColor Yellow
+$env:USE_NPX = "1"
+goto LaunchN8nNpx
+
+:LaunchN8nSystem
+Write-Host ""
+Write-Host "[INFO] Starting n8n with environment variables..." -ForegroundColor Cyan
+Write-Host "[INFO] URL: http://$env:N8N_HOST`:$env:N8N_PORT" -ForegroundColor Cyan
+Write-Host "[INFO] N8N_SECURE_COOKIE=$env:N8N_SECURE_COOKIE" -ForegroundColor Cyan
+Write-Host "[INFO] Press Ctrl+C to stop n8n" -ForegroundColor Yellow
+Write-Host ""
+
+# Set environment variables
+$env:N8N_SECURE_COOKIE = $env:N8N_SECURE_COOKIE
+$env:N8N_PORT = $env:N8N_PORT
+$env:N8N_HOST = $env:N8N_HOST
+$env:N8N_USER_FOLDER = $N8NHome
+
+# Run system n8n
+n8n
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to start n8n. Trying with npx fallback..." -ForegroundColor Red
+    goto LaunchN8nNpx
+}
+Read-Host "Press Enter to exit"
+exit 0
+
+:LaunchN8nLocal
+Write-Host ""
+Write-Host "[INFO] Starting n8n from: $N8nExecutable" -ForegroundColor Cyan
+Write-Host "[INFO] URL: http://$env:N8N_HOST`:$env:N8N_PORT" -ForegroundColor Cyan
+Write-Host "[INFO] N8N_SECURE_COOKIE=$env:N8N_SECURE_COOKIE" -ForegroundColor Cyan
+Write-Host "[INFO] Press Ctrl+C to stop n8n" -ForegroundColor Yellow
+Write-Host ""
+
+# Set environment variables
+$env:N8N_SECURE_COOKIE = $env:N8N_SECURE_COOKIE
+$env:N8N_PORT = $env:N8N_PORT
+$env:N8N_HOST = $env:N8N_HOST
+$env:N8N_USER_FOLDER = $N8NHome
+
+Set-Location $N8NHome
+& $N8nExecutable
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to start n8n. Trying with npx fallback..." -ForegroundColor Red
+    goto LaunchN8nNpx
+}
+Read-Host "Press Enter to exit"
+exit 0
+
+:LaunchN8nNpx
+Write-Host ""
+Write-Host "[INFO] Starting n8n via npx..." -ForegroundColor Cyan
+Write-Host "[INFO] URL: http://$env:N8N_HOST`:$env:N8N_PORT" -ForegroundColor Cyan
+Write-Host "[INFO] Press Ctrl+C to stop n8n" -ForegroundColor Yellow
+Write-Host ""
+
+# Set environment variables
+$env:N8N_SECURE_COOKIE = $env:N8N_SECURE_COOKIE
+$env:N8N_PORT = $env:N8N_PORT
+$env:N8N_HOST = $env:N8N_HOST
+
+Set-Location $N8NHome
+& $NodeExe "$NodeDir\..\node_modules\npm\bin\npx-cli.js" --yes n8n@$N8NVersion start
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to start n8n via npx" -ForegroundColor Red
+    exit 1
+}
+Read-Host "Press Enter to exit"
+exit 0
+
+this is code corect the script and give me teh script
