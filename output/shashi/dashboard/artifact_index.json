@@ -1,10 +1,106 @@
 {
-  "generated_at": "2026-07-18T21:44:39.497277+00:00",
+  "generated_at": "2026-07-19T09:07:11.464418+00:00",
   "candidate_id": "shashi",
-  "total_targets": 1,
+  "total_targets": 3,
   "interview_ready_count": 1,
-  "incomplete_count": 0,
+  "incomplete_count": 2,
   "targets": [
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z",
+      "folder_name": "Senior_SDET__20260719T090707Z",
+      "company": "Nimbus Telecom",
+      "role": "Senior SDET",
+      "portal": "linkedin",
+      "job_url": "https://example.com/j1",
+      "match_score": 81,
+      "decision": "Apply",
+      "status": "Prepared",
+      "submitted_at": "2026-07-19T09:07:11.058707+00:00",
+      "model_usage": {
+        "stages": {},
+        "total_prompt_tokens": 0,
+        "total_completion_tokens": 0,
+        "total_tokens": 0,
+        "total_estimated_cost_usd": 0.0
+      },
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "MasterResume.pdf",
+          "kind": "master_resume",
+          "size_bytes": 192311,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\MasterResume.pdf"
+        },
+        {
+          "name": "JD.txt",
+          "kind": "source",
+          "size_bytes": 100,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\JD.txt"
+        },
+        {
+          "name": "metadata.json",
+          "kind": "data",
+          "size_bytes": 743,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\metadata.json"
+        },
+        {
+          "name": "Resume.pdf",
+          "kind": "resume",
+          "size_bytes": 2192,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\Resume.pdf"
+        },
+        {
+          "name": "Resume.docx",
+          "kind": "resume",
+          "size_bytes": 37088,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\Resume.docx"
+        },
+        {
+          "name": "resume.json",
+          "kind": "data",
+          "size_bytes": 2551,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\resume.json"
+        },
+        {
+          "name": "CoverLetter.pdf",
+          "kind": "cover_letter",
+          "size_bytes": 2515,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\CoverLetter.pdf"
+        },
+        {
+          "name": "CoverLetter.docx",
+          "kind": "cover_letter",
+          "size_bytes": 37325,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\CoverLetter.docx"
+        },
+        {
+          "name": "Application.json",
+          "kind": "data",
+          "size_bytes": 1679,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\Application.json"
+        },
+        {
+          "name": "Screenshot.png",
+          "kind": "evidence",
+          "size_bytes": 15395,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\Screenshot.png"
+        },
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 543,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "InterviewQuestions.pdf",
+        "Answers.md"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
     {
       "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET",
       "folder_name": "Senior_SDET",
@@ -101,6 +197,55 @@
       "missing": [],
       "is_complete": true,
       "interview_ready": true,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090651Z",
+      "folder_name": "Senior_SDET__20260719T090651Z",
+      "company": "Nimbus Telecom",
+      "role": "Senior SDET",
+      "portal": "linkedin",
+      "job_url": "https://example.com/j1",
+      "match_score": 83,
+      "decision": "Apply",
+      "status": "",
+      "submitted_at": "",
+      "model_usage": {},
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "JD.txt",
+          "kind": "source",
+          "size_bytes": 100,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090651Z\\JD.txt"
+        },
+        {
+          "name": "metadata.json",
+          "kind": "data",
+          "size_bytes": 722,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090651Z\\metadata.json"
+        },
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 87,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090651Z\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "Resume.pdf",
+        "Resume.docx",
+        "resume.json",
+        "CoverLetter.pdf",
+        "CoverLetter.docx",
+        "InterviewQuestions.pdf",
+        "Answers.md",
+        "Application.json",
+        "Screenshot.png"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
       "candidate_id": "shashi",
       "profile_name": "QA_Automation_Engineer"
     }

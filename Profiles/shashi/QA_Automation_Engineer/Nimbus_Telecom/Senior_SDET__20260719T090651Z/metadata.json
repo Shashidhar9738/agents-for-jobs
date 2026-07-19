@@ -1,0 +1,21 @@
+{
+  "candidate_id": "shashi",
+  "company": "Nimbus Telecom",
+  "role_title": "Senior SDET",
+  "location": "Remote - India",
+  "work_mode": "Remote",
+  "job_url": "https://example.com/j1",
+  "source": "linkedin",
+  "posted_date": "",
+  "match_score": 83,
+  "decision": "Apply",
+  "reason": "Blended keyword and semantic score 83 meets threshold 80",
+  "fit_summary": "Shashidhar Yadala has 6 years of QA automation experience with strong skills in Java, Selenium WebDriver, REST API testing, and Jenkins, fully matching the Senior SDET role requirements at Nimbus Telecom.",
+  "key_required_skills": [
+    "Java",
+    "Selenium",
+    "API Testing",
+    "Jenkins"
+  ],
+  "missing_required_keywords": []
+}

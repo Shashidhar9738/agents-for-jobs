@@ -1,0 +1,16 @@
+{
+  "message": "[Prepared] shashi - Nimbus Telecom / Senior SDET via linkedin (score: 81).",
+  "channels": [
+    {
+      "channel": "email",
+      "status": "skipped",
+      "reason": "Missing destination",
+      "message": "[Prepared] shashi - Nimbus Telecom / Senior SDET via linkedin (score: 81)."
+    },
+    {
+      "channel": "whatsapp",
+      "status": "disabled",
+      "message": "[Prepared] shashi - Nimbus Telecom / Senior SDET via linkedin (score: 81)."
+    }
+  ]
+}

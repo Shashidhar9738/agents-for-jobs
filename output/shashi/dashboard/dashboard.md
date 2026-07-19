@@ -1,13 +1,13 @@
 # Dashboard - shashi
-- Jobs found: 1
+- Jobs found: 3
 - Applied: 0
 - Prepared: 0
 - Review: 0
-- Pending: 1
+- Pending: 2
 - Resume used: 0
 - AI provider/model: openrouter / openai/gpt-4.1
-- Tokens used: 1,517
-- Estimated cost: $0.0035
+- Tokens used: 4,537
+- Estimated cost: $0.0105
 - Conversion rate: 0.0%
 - Interview calls: 0
 - Companies: Senior SDET
