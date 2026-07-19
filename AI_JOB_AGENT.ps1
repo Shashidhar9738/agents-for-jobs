@@ -5,16 +5,30 @@
 #    first run  -> installs Python deps, Playwright, Node, n8n; then launches
 #    later runs -> launches n8n straight away
 #
+#  Launching starts two things: the pipeline dashboard server (background) and
+#  n8n (foreground). Ctrl+C stops both.
+#
 #  Explicit modes:
 #    .\AI_JOB_AGENT.ps1 setup   force a full re-provision
 #    .\AI_JOB_AGENT.ps1 start   skip provisioning, launch only
+#
+#  Options:
+#    -NoDashboard              launch n8n on its own
+#    -DashboardPort 8801       serve the dashboard on another port
+#    -Candidate priya          default candidate shown in the dashboard UI
+#    -Deploy                   push and activate the workflows once n8n is up
 # ============================================================================
 
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
     [ValidateSet('auto', 'setup', 'start')]
-    [string]$Mode = 'auto'
+    [string]$Mode = 'auto',
+
+    [int]$DashboardPort = 8800,
+    [string]$Candidate,
+    [switch]$NoDashboard,
+    [switch]$Deploy
 )
 
 # Native tools write to stderr routinely; Stop would abort on harmless noise.
@@ -123,6 +137,140 @@ if ($Mode -eq 'auto') {
 Write-Host "[INFO] Mode: $Mode" -ForegroundColor Green
 Write-Host ''
 
+# --------------------------- PYTHON DISCOVERY -------------------------------
+
+function Find-Python {
+    $candidates = @(
+        'py', 'python', 'python3',
+        (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312\python.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python311\python.exe'),
+        (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python310\python.exe'),
+        (Join-Path $env:ProgramFiles 'Python312\python.exe'),
+        (Join-Path $env:ProgramFiles 'Python311\python.exe'),
+        (Join-Path $env:ProgramFiles 'Python310\python.exe')
+    )
+    foreach ($c in $candidates) {
+        if ($c -match '\.exe$') {
+            if (Test-Path $c) { return $c }
+        } else {
+            $found = (Get-Command $c -ErrorAction SilentlyContinue).Source
+            if ($found -and (Get-Item $found).Length -gt 0) { return $found }
+        }
+    }
+    return $null
+}
+
+# --------------------------- DASHBOARD --------------------------------------
+
+# The pipeline server binds 127.0.0.1, so it has to run on the same machine as
+# n8n - the stage nodes call http://localhost:8800 and nothing routes across
+# hosts. Starting it here keeps the two together.
+
+function Start-Dashboard {
+    $dashboardScript = Join-Path $Workspace 'scripts\serve_dashboard.py'
+    if (-not (Test-Path $dashboardScript)) {
+        Write-Host "[WARN] serve_dashboard.py not found - dashboard skipped." -ForegroundColor Yellow
+        return $null
+    }
+
+    $listening = Get-NetTCPConnection -LocalPort $DashboardPort -State Listen -ErrorAction SilentlyContinue
+    if ($listening) {
+        Write-Host "[INFO] Port $DashboardPort already serving - reusing that dashboard." -ForegroundColor Cyan
+        return $null
+    }
+
+    $python = Find-Python
+    if (-not $python) {
+        Write-Host '[WARN] Python not found - dashboard not started. Stages will fail.' -ForegroundColor Yellow
+        return $null
+    }
+
+    $logDir = Join-Path $Workspace 'logs'
+    if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
+    $outLog = Join-Path $logDir 'dashboard.log'
+    $errLog = Join-Path $logDir 'dashboard.err.log'
+
+    $argList = @("`"$dashboardScript`"", '--port', "$DashboardPort")
+    if ($Candidate) { $argList += @('--candidate', $Candidate) }
+
+    Write-Host "[INFO] Starting dashboard on http://127.0.0.1:$DashboardPort ..." -ForegroundColor Cyan
+    $proc = Start-Process -FilePath $python -ArgumentList $argList `
+        -WorkingDirectory $Workspace `
+        -RedirectStandardOutput $outLog -RedirectStandardError $errLog `
+        -WindowStyle Hidden -PassThru
+
+    # A bad import or a taken port kills it instantly; catch that now rather
+    # than letting n8n come up in front of a dead backend.
+    Start-Sleep -Seconds 2
+    if ($proc.HasExited) {
+        Write-Host "[ERROR] Dashboard exited immediately (code $($proc.ExitCode))." -ForegroundColor Red
+        Write-Host "[ERROR] See $errLog" -ForegroundColor Red
+        return $null
+    }
+
+    Write-Host "[INFO] Dashboard running (PID $($proc.Id))" -ForegroundColor Green
+    Write-Host "[INFO] Dashboard log: $outLog" -ForegroundColor Gray
+    return $proc
+}
+
+function Stop-Dashboard {
+    param($Process)
+    if (-not $Process) { return }
+    if ($Process.HasExited) { return }
+    Write-Host ''
+    Write-Host "[INFO] Stopping dashboard (PID $($Process.Id))..." -ForegroundColor Cyan
+    Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+}
+
+# --------------------------- WORKFLOW DEPLOY --------------------------------
+
+# Opt-in (-Deploy). Pushes the workflows and activates them - without that,
+# triggers never fire and n8n records no executions at all. `n8n start` blocks,
+# so this waits for the port in a background job and deploys once it answers.
+
+function Start-DeployJob {
+    $buildScript = Join-Path $Workspace 'scripts\build_n8n_workflows.py'
+    if (-not (Test-Path $buildScript)) {
+        Write-Host '[WARN] build_n8n_workflows.py not found - deploy skipped.' -ForegroundColor Yellow
+        return $null
+    }
+
+    $python = Find-Python
+    if (-not $python) {
+        Write-Host '[WARN] Python not found - deploy skipped.' -ForegroundColor Yellow
+        return $null
+    }
+
+    Write-Host "[INFO] Workflows will deploy once n8n answers on port $($env:N8N_PORT)." -ForegroundColor Cyan
+
+    return Start-Job -ScriptBlock {
+        param($python, $buildScript, $workspace, $port, $dashboardPort)
+
+        # n8n takes a while to migrate its database on first boot.
+        $ready = $false
+        foreach ($attempt in 1..60) {
+            $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            if ($conn) { $ready = $true; break }
+            Start-Sleep -Seconds 2
+        }
+        if (-not $ready) { return "[DEPLOY] n8n never opened port $port - workflows not deployed." }
+
+        Start-Sleep -Seconds 3
+        Set-Location $workspace
+        $output = & $python $buildScript --pipeline "http://localhost:$dashboardPort" 2>&1
+        return ($output | Out-String)
+    } -ArgumentList $python, $buildScript, $Workspace, $env:N8N_PORT, $DashboardPort
+}
+
+function Complete-DeployJob {
+    param($Job)
+    if (-not $Job) { return }
+    Write-Host ''
+    Write-Host '--- workflow deploy output ---' -ForegroundColor Cyan
+    Receive-Job -Job $Job -ErrorAction SilentlyContinue | Write-Host
+    Remove-Job -Job $Job -Force -ErrorAction SilentlyContinue
+}
+
 # --------------------------- PROVISIONING -----------------------------------
 
 function Invoke-Provision {
@@ -136,24 +284,7 @@ function Invoke-Provision {
     }
 
     # --- Python
-    $pythonCmd = $null
-    $pythonCandidates = @(
-        'py', 'python', 'python3',
-        (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python312\python.exe'),
-        (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python311\python.exe'),
-        (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python310\python.exe'),
-        (Join-Path $env:ProgramFiles 'Python312\python.exe'),
-        (Join-Path $env:ProgramFiles 'Python311\python.exe'),
-        (Join-Path $env:ProgramFiles 'Python310\python.exe')
-    )
-    foreach ($c in $pythonCandidates) {
-        if ($c -match '\.exe$') {
-            if (Test-Path $c) { $pythonCmd = $c; break }
-        } else {
-            $found = (Get-Command $c -ErrorAction SilentlyContinue).Source
-            if ($found -and (Get-Item $found).Length -gt 0) { $pythonCmd = $found; break }
-        }
-    }
+    $pythonCmd = Find-Python
     if (-not $pythonCmd) {
         Write-Log '[ERROR] Python not found. Install from https://python.org and re-run.' 'Red'
         return $false
@@ -249,30 +380,47 @@ function Invoke-Launch {
         exit 1
     }
 
-    Write-Host ""
-    Write-Host "[INFO] Starting n8n..." -ForegroundColor Cyan
-    Write-Host "[INFO] Using: $n8nCmd" -ForegroundColor Cyan
-    
-    # Show version
-    Write-Host ""
-    Write-Host "Version:" -ForegroundColor Cyan
-    & n8n --version
-    
-    Write-Host ""
-    Write-Host "================================================" -ForegroundColor Cyan
-    Write-Host " n8n URL: $N8N_URL" -ForegroundColor Green
-    Write-Host "================================================" -ForegroundColor Cyan
-    Write-Host "[INFO] N8N_SECURE_COOKIE=$($env:N8N_SECURE_COOKIE)" -ForegroundColor Cyan
-    Write-Host "[INFO] N8N_USER_FOLDER=$($env:N8N_USER_FOLDER)" -ForegroundColor Cyan
-    Write-Host '[INFO] Press Ctrl+C to stop n8n' -ForegroundColor Yellow
-    Write-Host ''
-    
-    # Launch n8n
-    n8n start
-    
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "[ERROR] n8n exited with code $LASTEXITCODE. Check setup.log" -ForegroundColor Red
-        exit $LASTEXITCODE
+    # Dashboard first - n8n's stage nodes call it, so it should be up before
+    # any workflow can fire.
+    $dashboard = $null
+    if (-not $NoDashboard) { $dashboard = Start-Dashboard }
+
+    $deployJob = $null
+    if ($Deploy) { $deployJob = Start-DeployJob }
+
+    try {
+        Write-Host ""
+        Write-Host "[INFO] Starting n8n..." -ForegroundColor Cyan
+        Write-Host "[INFO] Using: $n8nCmd" -ForegroundColor Cyan
+
+        # Show version
+        Write-Host ""
+        Write-Host "Version:" -ForegroundColor Cyan
+        & n8n --version
+
+        Write-Host ""
+        Write-Host "================================================" -ForegroundColor Cyan
+        Write-Host " n8n URL   : $N8N_URL" -ForegroundColor Green
+        if (-not $NoDashboard) {
+            Write-Host " Dashboard : http://127.0.0.1:$DashboardPort" -ForegroundColor Green
+        }
+        Write-Host "================================================" -ForegroundColor Cyan
+        Write-Host "[INFO] N8N_SECURE_COOKIE=$($env:N8N_SECURE_COOKIE)" -ForegroundColor Cyan
+        Write-Host "[INFO] N8N_USER_FOLDER=$($env:N8N_USER_FOLDER)" -ForegroundColor Cyan
+        Write-Host '[INFO] Press Ctrl+C to stop both' -ForegroundColor Yellow
+        Write-Host ''
+
+        # Launch n8n (blocks until stopped)
+        n8n start
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[ERROR] n8n exited with code $LASTEXITCODE. Check setup.log" -ForegroundColor Red
+            exit $LASTEXITCODE
+        }
+    }
+    finally {
+        Complete-DeployJob -Job $deployJob
+        Stop-Dashboard -Process $dashboard
     }
 }
 
