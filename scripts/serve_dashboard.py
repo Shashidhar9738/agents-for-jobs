@@ -10,6 +10,8 @@ be exposed to a network.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
 import mimetypes
 import re
@@ -360,11 +362,36 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return value
         return None
 
+    def _basic_auth_user(self) -> User | None:
+        """Authenticate from an Authorization: Basic header.
+
+        Lets a caller that cannot hold a cookie - n8n running on another host,
+        curl, a scheduled script - sign in as a real dashboard user. The
+        credentials and the resulting access are exactly those of the login
+        form, so this grants nothing a browser session would not.
+        """
+        header = self.headers.get("Authorization", "")
+        scheme, _, encoded = header.partition(" ")
+        if scheme.lower() != "basic" or not encoded.strip():
+            return None
+        try:
+            decoded = base64.b64decode(encoded.strip(), validate=True).decode("utf-8")
+        except (binascii.Error, UnicodeDecodeError, ValueError):
+            return None
+        username, separator, password = decoded.partition(":")
+        if not separator:
+            return None
+        return USERS.authenticate(username, password)
+
     def _current_user(self) -> User | None:
-        # Service callers (n8n) present a token header; humans present a cookie.
+        # Service callers (n8n) present a token header or Basic credentials;
+        # humans present a cookie.
         machine = machine_user_from_token(self.headers.get("X-API-Key"))
         if machine is not None:
             return machine
+        basic = self._basic_auth_user()
+        if basic is not None:
+            return basic
         return SESSIONS.get(self._session_token())
 
     def _require_user(self) -> User | None:

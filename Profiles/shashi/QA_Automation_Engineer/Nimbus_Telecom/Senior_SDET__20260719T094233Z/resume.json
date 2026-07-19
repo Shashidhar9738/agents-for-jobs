@@ -1,0 +1,62 @@
+{
+  "candidate_id": "shashi",
+  "target_company": "Nimbus Telecom",
+  "target_role": "Senior SDET",
+  "job_url": "https://example.com/j1",
+  "source": "linkedin",
+  "prompt_path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\prompts\\resume_builder.md",
+  "master_resume_path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\data\\candidates\\shashi\\resume\\resume_master1.pdf",
+  "match_keywords_found": [
+    "Java",
+    "Selenium",
+    "API Testing",
+    "Jenkins",
+    "SDET",
+    "Selenium WebDriver"
+  ],
+  "updated_professional_summary": "5+ years of experience as Senior QA Automation Engineer, tailored toward Senior SDET for Nimbus Telecom. Emphasizes verified strengths in Java, Jenkins, Selenium WebDriver, Git, Postman while staying aligned to the target job requirements.",
+  "updated_skills_order": [
+    "Java",
+    "Jenkins",
+    "Selenium WebDriver",
+    "Git",
+    "Postman",
+    "Rest Assured",
+    "SQL",
+    "TestNG"
+  ],
+  "rewritten_experience_project_bullets": [
+    "GitHub \u2014 Load Testing Platform",
+    "(published on GitHub), applying",
+    "Automation: Selenium",
+    "REST Assured (API)",
+    "Tools: Git, JIRA, TFS, CI/CD"
+  ],
+  "changes_made": [
+    {
+      "before": "Senior QA Automation Engineer",
+      "after": "5+ years of experience as Senior QA Automation Engineer, tailored toward Senior SDET for Nimbus Telecom. Emphasizes verified strengths in Java, Jenkins, Selenium WebDriver, Git, Postman while staying aligned to the target job requirements."
+    },
+    {
+      "before": "Java, Selenium WebDriver, TestNG, Rest Assured, Postman, Jenkins, Git, SQL",
+      "after": "Java, Jenkins, Selenium WebDriver, Git, Postman, Rest Assured, SQL, TestNG"
+    }
+  ],
+  "integrity_check": {
+    "status": "PASS",
+    "message": "Content generated only from candidate profile, master resume, and job description without adding new facts."
+  },
+  "estimated_ats_improvement": "Medium",
+  "remaining_gaps": [
+    "JD references Selenium, but the candidate record does not expose enough verified detail to feature it strongly.",
+    "JD references API Testing, but the candidate record does not expose enough verified detail to feature it strongly.",
+    "JD references SDET, but the candidate record does not expose enough verified detail to feature it strongly."
+  ],
+  "one_page_validation": {
+    "status": "PASS",
+    "max_lines": 55
+  },
+  "generation_mode": "deterministic",
+  "prompt_versions": {},
+  "model_usage": {}
+}
