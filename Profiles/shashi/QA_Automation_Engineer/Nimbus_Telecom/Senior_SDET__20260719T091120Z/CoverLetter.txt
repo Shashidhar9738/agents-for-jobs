@@ -2,7 +2,7 @@ Dear Hiring Team,
 
 I am writing to express interest in the Senior SDET opportunity at Nimbus Telecom. The role stands out because it emphasizes Java, Selenium, API Testing, Jenkins, which matches the verified experience I have built as a Senior QA Automation Engineer.
 
-Across my background, I have focused on Java, Jenkins, Selenium WebDriver, Git, Postman. 6+ years of experience as Senior QA Automation Engineer, tailored toward Senior SDET for Nimbus Telecom. Emphasizes verified strengths in Java, Jenkins, Selenium WebDriver, Git, Postman while staying aligned to the target job requirements. That evidence-backed alignment is the main reason I believe I can contribute effectively in this position.
+Across my background, I have focused on Java, Jenkins, Selenium WebDriver, Git, Postman. 5+ years of experience as Senior QA Automation Engineer, tailored toward Senior SDET for Nimbus Telecom. Emphasizes verified strengths in Java, Jenkins, Selenium WebDriver, Git, Postman while staying aligned to the target job requirements. That evidence-backed alignment is the main reason I believe I can contribute effectively in this position.
 
 What makes this opportunity especially relevant is the overlap between the job description and the work I can support today: Java, Selenium, API Testing, Jenkins. I would bring a practical, quality-focused approach grounded in the experience already reflected in my resume. I am also aligned with the role's location and work-mode expectations in Remote - India. I am careful to present my fit honestly, including where the role asks for depth that would need to be demonstrated in discussion rather than overstated in writing.
 

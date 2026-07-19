@@ -3,3 +3,7 @@
 2026-07-18T21:44:30.328506+00:00	WF04	generate_cover_letter	OK	mode=ai
 2026-07-18T21:44:31.015862+00:00	WF05	execute_application	Prepared
 2026-07-18T21:44:38.402027+00:00	WF07	generate_interview_prep	OK
+2026-07-19T09:15:48.357429+00:00	WF03	generate_resume	OK	mode=deterministic
+2026-07-19T09:15:57.047970+00:00	WF04	generate_cover_letter	OK	mode=deterministic
+2026-07-19T09:16:01.652576+00:00	WF05	execute_application	Prepared
+2026-07-19T09:16:03.282422+00:00	WF06	dispatch_notifications	OK

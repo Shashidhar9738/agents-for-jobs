@@ -1,12 +1,12 @@
 {
   "candidate_id": "shashi",
-  "run_id": "ec7b371d-059b-423f-9137-b00d4496730a",
+  "run_id": "a271c9fa-6fa7-4d96-8a37-c3a4ab475b8c",
   "company": "Nimbus Telecom",
   "role_title": "Senior SDET",
   "location": "Remote - India",
   "portal": "linkedin",
   "job_url": "https://example.com/j1",
-  "submitted_at": "2026-07-19T09:07:11.058707+00:00",
+  "submitted_at": "2026-07-19T09:16:01.533179+00:00",
   "status": "Prepared",
   "submit_mode": "manual_assist",
   "match_score": 81,
@@ -15,9 +15,9 @@
   "cover_letter_used": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T090707Z\\CoverLetter.pdf",
   "answers": {
     "name": "Shashidhar Yadala",
-    "email": "",
+    "email": "Shashi.Shashi727@gmail.com",
     "phone": "",
-    "experience_years": 6,
+    "experience_years": 5,
     "current_title": "Senior QA Automation Engineer",
     "skills": [
       "Java",
@@ -45,11 +45,5 @@
   "next_action": "Open portal manually, upload generated documents, and submit",
   "errors": [],
   "prompt_versions": {},
-  "model_usage": {
-    "stages": {},
-    "total_prompt_tokens": 0,
-    "total_completion_tokens": 0,
-    "total_tokens": 0,
-    "total_estimated_cost_usd": 0.0
-  }
+  "model_usage": {}
 }

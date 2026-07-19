@@ -4,3 +4,7 @@
 2026-07-19T09:07:10.981182+00:00	WF04	generate_cover_letter	OK	mode=deterministic
 2026-07-19T09:07:11.250372+00:00	WF05	execute_application	Prepared
 2026-07-19T09:07:11.308260+00:00	WF06	dispatch_notifications	OK
+2026-07-19T09:15:46.688557+00:00	WF03	generate_resume	OK	mode=deterministic
+2026-07-19T09:15:55.858137+00:00	WF04	generate_cover_letter	OK	mode=deterministic
+2026-07-19T09:16:01.589359+00:00	WF05	execute_application	Prepared
+2026-07-19T09:16:03.332017+00:00	WF06	dispatch_notifications	OK
