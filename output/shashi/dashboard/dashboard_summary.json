@@ -1,10 +1,10 @@
 {
   "candidate_id": "shashi",
-  "jobs_found": 82,
+  "jobs_found": 106,
   "applied": 0,
   "prepared": 11,
-  "review": 3,
-  "pending": 14,
+  "review": 7,
+  "pending": 18,
   "resume_used_count": 0,
   "ai_provider": "openrouter",
   "ai_model": "openai/gpt-4.1",
@@ -19,6 +19,7 @@
   },
   "companies": [
     "Astek",
+    "Cognizant",
     "Morningstar",
     "Nimbus Telecom"
   ],

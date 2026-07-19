@@ -1,0 +1,5 @@
+2026-07-19T11:12:13.802970+00:00	WF02	resolve_artifact_target	OK	versioned_rerun=False
+2026-07-19T11:12:14.539197+00:00	WF03	generate_resume	OK	mode=deterministic
+2026-07-19T11:12:15.192330+00:00	WF04	generate_cover_letter	OK	mode=deterministic
+2026-07-19T11:12:15.323219+00:00	WF05	execute_application	Review
+2026-07-19T11:12:15.360695+00:00	WF06	dispatch_notifications	OK

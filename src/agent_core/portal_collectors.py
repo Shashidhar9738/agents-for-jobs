@@ -262,6 +262,71 @@ def _parse_naukri_card(card: Any) -> Optional[Dict[str, Any]]:
 
 # ── collector dispatcher ──────────────────────────────────────────────────────
 
+def collect_remoteok_jobs(
+    keywords: List[str],
+    max_results: int = 25,
+) -> List[Dict[str, Any]]:
+    """Read RemoteOK's public JSON feed and keep what matches the keywords.
+
+    The feed is a single global list rather than a search endpoint, so filtering
+    happens here. Descriptions ship with the feed, which means these records
+    score properly without a second request per job.
+    """
+    try:
+        response = _get_with_retry("https://remoteok.com/api")
+    except PortalCollectionError:
+        return []
+
+    try:
+        records = response.json()
+    except ValueError:
+        return []
+    if not isinstance(records, list):
+        return []
+
+    # Each keyword becomes the set of words that must all appear in the title,
+    # in any order. Exact-phrase matching missed 'Senior QA Automation Engineer'
+    # for the keyword 'QA Automation Engineer'; whole-word matching avoids 'qa'
+    # hitting 'equality' or 'test' hitting 'latest'.
+    wanted: List[List[re.Pattern[str]]] = []
+    for keyword in keywords:
+        words = [word for word in re.split(r"\W+", keyword.strip().lower()) if word]
+        if words:
+            wanted.append([re.compile(rf"\b{re.escape(word)}\b") for word in words])
+    jobs: List[Dict[str, Any]] = []
+    for record in records:
+        # The first element is RemoteOK's legal notice, not a posting.
+        if not isinstance(record, dict) or not record.get("position"):
+            continue
+
+        description = _clean(BeautifulSoup(str(record.get("description", "")), "lxml").get_text(" "))
+        # Title only. The description mentions 'QA' or 'testing' in passing on
+        # plenty of unrelated roles, and RemoteOK's tags are auto-generated and
+        # near-useless - a Creative Director post carries 27 of them including
+        # 'testing' and 'golang'. The title is the only trustworthy signal here.
+        haystack = str(record.get("position", "")).lower()
+        if wanted and not any(
+            all(pattern.search(haystack) for pattern in group) for group in wanted
+        ):
+            continue
+
+        jobs.append(
+            {
+                "title": _clean(str(record.get("position", ""))),
+                "company": _clean(str(record.get("company", ""))),
+                "location": _clean(str(record.get("location") or "Remote")),
+                "url": str(record.get("url") or record.get("apply_url") or ""),
+                "source": "remoteok",
+                "description": description[:6000],
+                "posted_date": str(record.get("date", "")),
+                "skills": [str(tag) for tag in record.get("tags") or []],
+            }
+        )
+        if len(jobs) >= max_results:
+            break
+    return jobs
+
+
 def collect_portal(
     portal_name: str,
     keywords: List[str],
@@ -277,6 +342,8 @@ def collect_portal(
         return collect_indeed_jobs(keywords, locations, max_results)
     if name == "naukri":
         return collect_naukri_jobs(keywords, locations, experience_years, max_results)
+    if name == "remoteok":
+        return collect_remoteok_jobs(keywords, max_results)
     return []
 
 

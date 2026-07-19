@@ -1,0 +1,16 @@
+{
+  "message": "[Review] shashi - Astek / Senior QA Automation Engineer - Praca zdalna K/M via linkedin (score: 76).",
+  "channels": [
+    {
+      "channel": "email",
+      "status": "skipped",
+      "reason": "Missing destination",
+      "message": "[Review] shashi - Astek / Senior QA Automation Engineer - Praca zdalna K/M via linkedin (score: 76)."
+    },
+    {
+      "channel": "whatsapp",
+      "status": "disabled",
+      "message": "[Review] shashi - Astek / Senior QA Automation Engineer - Praca zdalna K/M via linkedin (score: 76)."
+    }
+  ]
+}

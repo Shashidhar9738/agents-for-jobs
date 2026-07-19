@@ -1,0 +1,55 @@
+{
+  "candidate_id": "shashi",
+  "run_id": "99041a6c-ee47-49e6-bb22-1d44d77c3003",
+  "company": "Cognizant",
+  "role_title": "Software Developer in Test (SDET) \u2013 Mobile, Web & API Automation-REMOTE",
+  "location": "Mangum, NC",
+  "portal": "linkedin",
+  "job_url": "https://www.linkedin.com/jobs/view/software-developer-in-test-sdet-%E2%80%93-mobile-web-api-automation-remote-at-cognizant-4424457634",
+  "submitted_at": "2026-07-19T11:12:15.243814+00:00",
+  "status": "Review",
+  "submit_mode": "manual_assist",
+  "match_score": 78,
+  "reason": "Borderline score below threshold 80",
+  "resume_used": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Cognizant\\Software_Developer_in_Test_SDET_Mobile_Web_API_Automation-REMOTE\\Resume.pdf",
+  "cover_letter_used": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Cognizant\\Software_Developer_in_Test_SDET_Mobile_Web_API_Automation-REMOTE\\CoverLetter.pdf",
+  "answers": {
+    "name": "Shashidhar Yadala",
+    "email": "Shashi.Shashi727@gmail.com",
+    "phone": "",
+    "experience_years": 5,
+    "current_title": "Senior QA Automation Engineer",
+    "skills": [
+      "Java",
+      "TestNG",
+      "Postman",
+      "Jenkins",
+      "Git",
+      "Rest Assured",
+      "Selenium WebDriver",
+      "SQL"
+    ],
+    "links": {
+      "linkedin": "",
+      "github": "",
+      "portfolio": ""
+    },
+    "locations": [
+      "Remote",
+      "Bangalore",
+      "Hyderabad",
+      "Chennai",
+      "Pune"
+    ]
+  },
+  "next_action": "Review candidate data or job requirements before proceeding",
+  "errors": [],
+  "prompt_versions": {},
+  "model_usage": {
+    "stages": {},
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_tokens": 0,
+    "total_estimated_cost_usd": 0.0
+  }
+}

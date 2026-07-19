@@ -1,0 +1,16 @@
+{
+  "message": "[Review] shashi - Morningstar / Senior QA Automation Engineer via linkedin (score: 76).",
+  "channels": [
+    {
+      "channel": "email",
+      "status": "skipped",
+      "reason": "Missing destination",
+      "message": "[Review] shashi - Morningstar / Senior QA Automation Engineer via linkedin (score: 76)."
+    },
+    {
+      "channel": "whatsapp",
+      "status": "disabled",
+      "message": "[Review] shashi - Morningstar / Senior QA Automation Engineer via linkedin (score: 76)."
+    }
+  ]
+}

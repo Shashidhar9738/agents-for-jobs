@@ -1,13 +1,13 @@
 # Dashboard - shashi
-- Jobs found: 82
+- Jobs found: 106
 - Applied: 0
 - Prepared: 11
-- Review: 3
-- Pending: 14
+- Review: 7
+- Pending: 18
 - Resume used: 0
 - AI provider/model: openrouter / openai/gpt-4.1
 - Tokens used: 15,184
 - Estimated cost: $0.0354
 - Conversion rate: 0.0%
 - Interview calls: 0
-- Companies: Astek, Morningstar, Nimbus Telecom
+- Companies: Astek, Cognizant, Morningstar, Nimbus Telecom
