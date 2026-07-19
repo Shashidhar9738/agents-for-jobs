@@ -244,13 +244,6 @@ requests>=2.32.0
     Write-Host "[STEP] Installing n8n v$N8NVersion in user profile (no admin needed)..." -ForegroundColor Yellow
     $npm = $script:Node.Npm
 
-    if (-not (Test-Path (Join-Path $N8NHome 'package.json'))) {
-        if ((Invoke-Logged $npm @('init', '-y') $N8NHome) -ne 0) {
-            Write-Log '[ERROR] n8n bootstrap failed. Check setup.log' 'Red'
-            return $false
-        }
-    }
-
     # Reinstall when the binary is missing or the installed version is not the pinned one.
     $needsReinstall = -not (Test-Path $N8NBin)
     if (-not $needsReinstall) {
@@ -266,11 +259,21 @@ requests>=2.32.0
         }
     }
 
+    # package.json goes too: a manifest left by an older pin (e.g. "n8n": "^1.50.0")
+    # makes npm resolve that range instead of $N8NVersion, so the upgrade never lands.
     if ($needsReinstall) {
         Write-Host '[WARN] Missing, broken, or wrong-version n8n detected. Reinstalling...' -ForegroundColor Yellow
-        foreach ($stale in @('node_modules', 'package-lock.json')) {
+        foreach ($stale in @('node_modules', 'package-lock.json', 'package.json')) {
             $p = Join-Path $N8NHome $stale
             if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+        }
+    }
+
+    # Bootstrap after the cleanup, so a just-deleted manifest is recreated empty.
+    if (-not (Test-Path (Join-Path $N8NHome 'package.json'))) {
+        if ((Invoke-Logged $npm @('init', '-y') $N8NHome) -ne 0) {
+            Write-Log '[ERROR] n8n bootstrap failed. Check setup.log' 'Red'
+            return $false
         }
     }
 
