@@ -15,6 +15,20 @@
       "preferences_path": "config/candidates/aishwarya/preferences.json",
       "resume_folder": "data/candidates/aishwarya/resume",
       "tracker_csv": "output/aishwarya/AppliedJobs.csv"
+    },
+    "admin": {
+      "display_name": "Admin",
+      "profile_path": "config/candidates/admin/profile.json",
+      "preferences_path": "config/candidates/admin/preferences.json",
+      "resume_folder": "data/candidates/admin/resume",
+      "tracker_csv": "output/admin/AppliedJobs.csv"
+    },
+    "shashi123": {
+      "display_name": "Shashidhar",
+      "profile_path": "config/candidates/shashi123/profile.json",
+      "preferences_path": "config/candidates/shashi123/preferences.json",
+      "resume_folder": "data/candidates/shashi123/resume",
+      "tracker_csv": "output/shashi123/AppliedJobs.csv"
     }
   }
 }
