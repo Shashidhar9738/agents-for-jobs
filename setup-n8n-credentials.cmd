@@ -87,8 +87,10 @@ if exist "%ENVFILE%" (
   rem Strip the keys we are about to rewrite. Names and paths travel via
   rem environment variables, not argv, so no secret is exposed in the process
   rem command line.
+  rem WriteAllLines with UTF8Encoding($false), not Set-Content -Encoding utf8:
+  rem PowerShell 5.1 emits a BOM, which would corrupt the first key on load.
   powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "Get-Content -LiteralPath $env:ENVFILE | Where-Object { $_ -notmatch ('^' + $env:MANAGED) } | Set-Content -LiteralPath $env:ENVTMP -Encoding utf8"
+    "$keep = Get-Content -LiteralPath $env:ENVFILE | Where-Object { $_ -notmatch ('^' + $env:MANAGED) }; [System.IO.File]::WriteAllLines($env:ENVTMP, $keep, (New-Object System.Text.UTF8Encoding($false)))"
   if errorlevel 1 (
     echo [ERROR] Could not rewrite .env - original left untouched.
     goto :end

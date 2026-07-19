@@ -1,6 +1,5 @@
 # Runtime logs and transient files
 setup.log
-!LOGFILE!
 logs/
 .env
 config/n8n.local.credentials.json
