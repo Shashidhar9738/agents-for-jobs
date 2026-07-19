@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create account — Job Agent</title>
+<style>
+  :root{
+    --ground:#F2F5F6; --surface:#FFFFFF; --surface-2:#F7FAFA;
+    --ink:#101619; --ink-2:#3D4C52; --muted:#66787E;
+    --line:#DDE5E7; --line-strong:#C4D0D3; --accent:#0E7C86;
+    --ok:#12833F; --review:#C96A05;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono","Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0E1214; --surface:#161A1D; --surface-2:#1C2226;
+      --ink:#E6EDEE; --ink-2:#B3C2C6; --muted:#7E9298;
+      --line:#293236; --line-strong:#3A464B; --accent:#3FB6C0;
+      --ok:#279A52; --review:#CE7F16;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+    background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  .card{width:100%;max-width:410px;background:var(--surface);border:1px solid var(--line);
+    border-radius:8px;padding:28px}
+  h1{margin:0;font-size:19px;letter-spacing:-.02em;font-weight:660}
+  .sub{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--muted);margin:3px 0 20px}
+  label{display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+  input{width:100%;padding:10px 12px;border-radius:5px;border:1px solid var(--line-strong);
+    background:var(--surface-2);color:var(--ink);font-family:var(--sans);font-size:14px;margin-bottom:6px}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .hint{font-size:11.5px;color:var(--muted);margin:0 0 14px}
+  button{width:100%;padding:11px;border-radius:5px;border:1px solid var(--accent);
+    background:var(--accent);color:#fff;font-family:var(--mono);font-size:13px;font-weight:600;
+    cursor:pointer;margin-top:6px}
+  button:hover:not(:disabled){filter:brightness(1.08)}
+  button:disabled{opacity:.6;cursor:not-allowed}
+  .msg{display:none;margin-bottom:15px;padding:10px 12px;border-radius:5px;font-size:13px}
+  .msg.err{display:block;border:1px solid var(--review);color:var(--review)}
+  .msg.info{display:block;border:1px solid var(--accent);color:var(--ink-2);background:var(--surface-2)}
+  .alt{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted);text-align:center}
+  a{color:var(--accent);text-decoration:none;font-weight:600}
+  a:hover{text-decoration:underline}
+  .closed{display:none;font-size:13px;color:var(--ink-2)}
+  .strength{height:3px;border-radius:2px;background:var(--line);margin:0 0 14px;overflow:hidden}
+  .strength i{display:block;height:100%;width:0;background:var(--review);transition:width .2s,background .2s}
+</style>
+</head>
+<body>
+  <form class="card" id="form" autocomplete="on">
+    <h1>Create your account</h1>
+    <div class="sub" id="subtitle">job agent</div>
+
+    <div class="msg" id="msg" role="alert"></div>
+
+    <div id="fields">
+      <label for="full">Full name</label>
+      <input id="full" name="full_name" autocomplete="name" required>
+      <p class="hint">Used on your CV and cover letters.</p>
+
+      <label for="user">Username</label>
+      <input id="user" name="username" autocomplete="username" required>
+      <p class="hint">Lowercase letters, digits, - or _. This names your folders.</p>
+
+      <label for="pass">Password</label>
+      <input id="pass" name="password" type="password" autocomplete="new-password" required>
+      <div class="strength"><i id="bar"></i></div>
+
+      <div id="codeWrap" hidden>
+        <label for="code">Registration code</label>
+        <input id="code" name="code" autocomplete="off">
+        <p class="hint">Ask whoever runs this instance for the code.</p>
+      </div>
+
+      <button type="submit" id="btn">Create account</button>
+    </div>
+
+    <div class="closed" id="closed">
+      Registration is closed on this instance. Ask an admin to create your account.
+    </div>
+
+    <div class="alt">Already have an account? <a href="/login">Sign in</a></div>
+  </form>
+
+<script>
+(function(){
+  var form = document.getElementById("form");
+  var msg = document.getElementById("msg");
+  var btn = document.getElementById("btn");
+  var pass = document.getElementById("pass");
+  var bar = document.getElementById("bar");
+
+  function show(text, kind){ msg.textContent = text; msg.className = "msg " + kind; }
+
+  fetch("/api/registration-state").then(function(r){ return r.json(); }).then(function(s){
+    if (!s.enabled){
+      document.getElementById("fields").hidden = true;
+      document.getElementById("closed").style.display = "block";
+      return;
+    }
+    if (s.code_required) document.getElementById("codeWrap").hidden = false;
+    if (s.first_user){
+      document.getElementById("subtitle").textContent = "first account · becomes admin";
+      show("This is the first account on this instance, so it will be the administrator.", "info");
+    }
+  });
+
+  // Rough guidance only - the server is what actually enforces the rules.
+  pass.addEventListener("input", function(){
+    var v = pass.value, score = 0;
+    if (v.length >= 8) score++;
+    if (v.length >= 12) score++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+    var pct = [0, 20, 40, 60, 80, 100][score];
+    bar.style.width = pct + "%";
+    bar.style.background = score <= 2 ? "var(--review)" : (score === 3 ? "var(--accent)" : "var(--ok)");
+  });
+
+  document.getElementById("user").addEventListener("input", function(e){
+    e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  });
+
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    msg.className = "msg";
+    btn.disabled = true; btn.textContent = "Creating…";
+
+    fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        full_name: document.getElementById("full").value,
+        username: document.getElementById("user").value,
+        password: pass.value,
+        code: document.getElementById("code") ? document.getElementById("code").value : ""
+      })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+    .then(function(res){
+      if (!res.ok){
+        show(res.body.error || "Could not create the account", "err");
+        btn.disabled = false; btn.textContent = "Create account";
+        return;
+      }
+      location.href = "/";
+    })
+    .catch(function(e){
+      show("Could not reach the server: " + e.message, "err");
+      btn.disabled = false; btn.textContent = "Create account";
+    });
+  });
+})();
+</script>
+</body>
+</html>

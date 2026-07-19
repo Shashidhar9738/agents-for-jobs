@@ -39,6 +39,11 @@ from src.agent_core.auth import (  # noqa: E402
     machine_user_from_token,
 )
 from src.agent_core.interview_prep import generate_interview_prep  # noqa: E402
+from src.agent_core.onboarding import (  # noqa: E402
+    RegistrationError,
+    register_candidate,
+    registration_state,
+)
 from src.agent_core.resume_ingest import ingest_master_resume  # noqa: E402
 from src.agent_core.stages import StageError, run_stage  # noqa: E402
 from src.agent_core.vault import CredentialVault, VaultError  # noqa: E402
@@ -52,7 +57,7 @@ VAULT = CredentialVault(REPO_ROOT / "config" / "vault.json")
 SESSION_COOKIE = "jobagent_session"
 
 # Routes reachable without a session. Everything else requires login.
-_PUBLIC_ROUTES = {"/login", "/api/login", "/api/session"}
+_PUBLIC_ROUTES = {"/login", "/api/login", "/api/session", "/register", "/api/register", "/api/registration-state"}
 
 # Guards the pipeline against concurrent triggers from double-clicks.
 _run_lock = threading.Lock()
@@ -408,6 +413,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_login_page()
             return
 
+        if route == "/register":
+            self._send_page("register.html")
+            return
+
+        if route == "/api/registration-state":
+            self._send_json(registration_state(REPO_ROOT))
+            return
+
         if route == "/api/session":
             self._send_json(
                 {"authenticated": user is not None, "user": user.as_public() if user else None,
@@ -473,6 +486,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         if route == "/api/login":
             self._handle_login()
+            return
+
+        if route == "/api/register":
+            self._handle_register()
             return
 
         if route == "/api/logout":
@@ -617,11 +634,52 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return payload if isinstance(payload, dict) else {}
 
     def _send_login_page(self) -> None:
-        template = REPO_ROOT / "src" / "dashboard" / "login.html"
+        self._send_page("login.html")
+
+    def _send_page(self, filename: str) -> None:
+        template = REPO_ROOT / "src" / "dashboard" / filename
         if not template.exists():
-            self._send_json({"error": "login template missing"}, 500)
+            self._send_json({"error": f"{filename} missing"}, 500)
             return
         self._send_bytes(template.read_bytes(), "text/html; charset=utf-8")
+
+    def _handle_register(self) -> None:
+        body = self._read_json_body()
+        try:
+            result = register_candidate(
+                REPO_ROOT,
+                candidate_id=str(body.get("username", "")),
+                display_name=str(body.get("full_name", "")),
+                password=str(body.get("password", "")),
+                registration_code=str(body.get("code", "")),
+            )
+        except RegistrationError as exc:
+            self._send_json({"error": str(exc)}, 400)
+            return
+        except Exception as exc:
+            self._send_json({"error": f"{type(exc).__name__}: {exc}"}, 500)
+            return
+
+        # Sign the new account straight in - no reason to ask for the password twice.
+        user = USERS.authenticate(result.candidate_id, str(body.get("password", "")))
+        payload = json.dumps({
+            "ok": True,
+            "candidate_id": result.candidate_id,
+            "role": result.role,
+            "first_user": result.is_first_user,
+        }).encode("utf-8")
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        if user is not None:
+            token = SESSIONS.create(user)
+            self.send_header(
+                "Set-Cookie",
+                f"{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800",
+            )
+        self.end_headers()
+        self.wfile.write(payload)
 
     def _handle_login(self) -> None:
         body = self._read_json_body()
