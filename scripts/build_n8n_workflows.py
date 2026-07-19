@@ -146,6 +146,15 @@ def stage_workflow(stage: str, pipeline_base: str, api_token: str) -> Dict[str, 
                 "options": {},
             },
         },
+        {
+            # Without this the execution is recorded green even though the stage
+            # did nothing, which makes n8n's history actively misleading.
+            "id": f"{stage}-stop", "name": "Mark run failed",
+            "type": "n8n-nodes-base.stopAndError", "typeVersion": 1, "position": [960, 90],
+            "parameters": {
+                "errorMessage": "={{ 'Stage " + stage + " failed: ' + JSON.stringify($json.error || 'unknown') }}"
+            },
+        },
     ]
 
     connections = {
@@ -156,6 +165,8 @@ def stage_workflow(stage: str, pipeline_base: str, api_token: str) -> Dict[str, 
             [{"node": "Return result", "type": "main", "index": 0}],
             [{"node": "Return failure", "type": "main", "index": 0}],
         ]},
+        # Respond first so the caller still gets a useful body, then fail the run.
+        "Return failure": {"main": [[{"node": "Mark run failed", "type": "main", "index": 0}]]},
     }
 
     return {
