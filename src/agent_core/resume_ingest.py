@@ -44,12 +44,33 @@ _RESUME_OWNED_FIELDS = (
 )
 
 
+MASTER_RESUME_SUFFIXES = (".pdf", ".docx", ".txt", ".md")
+
+
 def find_master_resume(resume_folder: Path) -> Path | None:
-    for suffix in (".pdf", ".docx", ".txt", ".md"):
+    """Locate the candidate's master resume.
+
+    Shared by WF00, WF03 and the stage runner so the three cannot disagree
+    about which file counts as the master.
+    """
+    for suffix in MASTER_RESUME_SUFFIXES:
         candidate = resume_folder / f"resume_master{suffix}"
         if candidate.exists():
             return candidate
-    return None
+
+    # Exact names are preferred, but a suffixed copy (resume_master1.pdf,
+    # resume_master_v2.pdf) is a normal way to keep a newer draft around and
+    # should not stop the run. Newest wins.
+    if not resume_folder.exists():
+        return None
+    suffixed = [
+        path
+        for path in resume_folder.glob("resume_master*")
+        if path.is_file() and path.suffix.lower() in MASTER_RESUME_SUFFIXES
+    ]
+    if not suffixed:
+        return None
+    return max(suffixed, key=lambda path: path.stat().st_mtime)
 
 
 def extract_resume_text(path: Path) -> str:

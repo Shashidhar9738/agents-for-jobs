@@ -14,6 +14,7 @@ from reportlab.pdfgen import canvas
 
 from src.agent_core.ai_client import AIClient, AIClientError
 from src.agent_core.prompt_loader import PromptLoadError, collect_prompt_versions, load_prompt
+from src.agent_core.resume_ingest import find_master_resume
 
 
 class ResumeGenerationError(ValueError):
@@ -138,29 +139,13 @@ def _resolve_master_resume_path(repo_root: Path, run_context: Dict[str, Any]) ->
                 return candidate_path
 
     resume_folder = Path(_require_non_empty(paths.get("resume_folder"), "paths.resume_folder"))
-    candidates = [
-        resume_folder / "resume_master.pdf",
-        resume_folder / "resume_master.txt",
-        resume_folder / "resume_master.md",
-    ]
-    found = next((path for path in candidates if path.exists()), None)
-    if found is not None:
-        return found
-
-    # Exact names are preferred, but a suffixed copy (resume_master1.pdf,
-    # resume_master_v2.pdf) is a normal way to keep a newer draft around and
-    # should not stop the run. Newest wins.
-    suffixed = [
-        path
-        for path in sorted(resume_folder.glob("resume_master*"))
-        if path.is_file() and path.suffix.lower() in {".pdf", ".txt", ".md"}
-    ]
-    if suffixed:
-        return max(suffixed, key=lambda path: path.stat().st_mtime)
-
-    raise ResumeGenerationError(
-        f"No master resume source found in {resume_folder}. Expected resume_master.pdf, resume_master.txt, or resume_master.md"
-    )
+    found = find_master_resume(resume_folder)
+    if found is None:
+        raise ResumeGenerationError(
+            f"No master resume source found in {resume_folder}. "
+            "Expected resume_master.pdf, resume_master.docx, resume_master.txt, or resume_master.md"
+        )
+    return found
 
 
 def _extract_resume_text(master_resume_path: Path) -> str:

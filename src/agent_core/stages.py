@@ -14,7 +14,7 @@ from src.agent_core.interview_prep import generate_interview_prep
 from src.agent_core.job_search import run_job_search
 from src.agent_core.notifications import dispatch_notifications
 from src.agent_core.resume_generator import generate_resume_bundle
-from src.agent_core.resume_ingest import ingest_master_resume
+from src.agent_core.resume_ingest import find_master_resume, ingest_master_resume
 
 
 class StageError(ValueError):
@@ -274,11 +274,7 @@ def _master_resume(repo_root: Path, context: Dict[str, Any]) -> Path | None:
     folder = Path(str((context.get("paths") or {}).get("resume_folder", "")))
     if not folder.exists():
         return None
-    for name in ("resume_master.pdf", "resume_master.docx", "resume_master.txt", "resume_master.md"):
-        candidate = folder / name
-        if candidate.exists():
-            return candidate
-    return None
+    return find_master_resume(folder)
 
 
 _HANDLERS: Dict[str, Callable[[Path, str, Dict[str, Any]], Dict[str, Any]]] = {
