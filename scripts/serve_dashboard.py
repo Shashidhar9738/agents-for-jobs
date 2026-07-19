@@ -43,6 +43,7 @@ from src.agent_core.onboarding import (  # noqa: E402
     RegistrationError,
     register_candidate,
     registration_state,
+    set_registration_open,
 )
 from src.agent_core.resume_ingest import ingest_master_resume  # noqa: E402
 from src.agent_core.stages import StageError, run_stage  # noqa: E402
@@ -514,6 +515,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._handle_delete_credential()
             return
 
+        if route == "/api/registration-toggle":
+            user = self._require_user()
+            if user is None:
+                return
+            if not user.is_admin:
+                self._send_json({"error": "forbidden"}, 403)
+                return
+            body = self._read_json_body()
+            self._send_json(set_registration_open(REPO_ROOT, bool(body.get("open", True))))
+            return
+
         if route == "/api/suggest-portals":
             self._handle_suggest_portals()
             return
@@ -651,7 +663,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 candidate_id=str(body.get("username", "")),
                 display_name=str(body.get("full_name", "")),
                 password=str(body.get("password", "")),
-                registration_code=str(body.get("code", "")),
+                client_key=self.client_address[0],
             )
         except RegistrationError as exc:
             self._send_json({"error": str(exc)}, 400)

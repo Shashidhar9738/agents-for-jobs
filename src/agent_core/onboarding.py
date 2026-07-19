@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import json
-import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from src.agent_core.auth import ROLE_ADMIN, ROLE_CANDIDATE, AuthError, UserStore
 
@@ -14,12 +14,18 @@ TRACKER_HEADER = (
     "Reason,ResumeVersion,CoverLetterVersion,FollowUpDate,Notes\n"
 )
 
-# Set in .env to require a shared code before anyone can self-register. Strongly
-# recommended before this is reachable from anything but localhost.
-REGISTRATION_CODE_ENV = "JOB_AGENT_REGISTRATION_CODE"
-REGISTRATION_OPEN_ENV = "JOB_AGENT_ALLOW_OPEN_REGISTRATION"
+# Registration is open by default: a candidate signing up should not have to know
+# a code. An admin can close it from the dashboard, and the switch lives in config
+# rather than .env so it can be changed without restarting or editing files.
+SETTINGS_FILE = "registration.json"
 
 MIN_PASSWORD_LENGTH = 8
+
+# Bulk sign-ups from one source are the realistic abuse case, so registration is
+# rate limited per client rather than gated behind a code.
+MAX_SIGNUPS_PER_WINDOW = 5
+SIGNUP_WINDOW_SECONDS = 3600
+_recent_signups: Dict[str, List[float]] = {}
 _ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{1,29}$")
 
 # Rejected outright - these are the first guesses in any credential-stuffing list.
@@ -41,19 +47,51 @@ class RegistrationResult:
     is_first_user: bool
 
 
+def _settings_path(repo_root: Path) -> Path:
+    return repo_root / "config" / SETTINGS_FILE
+
+
+def get_settings(repo_root: Path) -> Dict[str, Any]:
+    path = _settings_path(repo_root)
+    if not path.exists():
+        return {"registration_open": True}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"registration_open": True}
+    return {"registration_open": bool(data.get("registration_open", True))}
+
+
+def set_registration_open(repo_root: Path, is_open: bool) -> Dict[str, Any]:
+    """Admin switch for whether new people may sign up."""
+    path = _settings_path(repo_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"registration_open": bool(is_open)}, indent=2), encoding="utf-8")
+    return get_settings(repo_root)
+
+
 def registration_state(repo_root: Path) -> Dict[str, Any]:
     """Describe how registration behaves right now, for the sign-up page."""
     store = UserStore(repo_root / "config" / "users.json")
     has_users = store.exists()
-    code_required = bool(os.getenv(REGISTRATION_CODE_ENV, "").strip())
-    open_registration = os.getenv(REGISTRATION_OPEN_ENV, "").strip().lower() in {"1", "true", "yes"}
+    settings = get_settings(repo_root)
     return {
-        # The very first account is always allowed, otherwise nobody could start.
-        "enabled": (not has_users) or code_required or open_registration,
-        "code_required": code_required and has_users,
+        # The first account is always allowed, otherwise nobody could ever start.
+        "enabled": (not has_users) or settings["registration_open"],
         "first_user": not has_users,
-        "open": open_registration,
+        "registration_open": settings["registration_open"],
     }
+
+
+def _rate_limit(client_key: str) -> None:
+    now = time.time()
+    recent = [t for t in _recent_signups.get(client_key, []) if now - t < SIGNUP_WINDOW_SECONDS]
+    if len(recent) >= MAX_SIGNUPS_PER_WINDOW:
+        raise RegistrationError(
+            "Too many accounts created from here recently. Try again later."
+        )
+    recent.append(now)
+    _recent_signups[client_key] = recent
 
 
 def validate_password(password: str) -> None:
@@ -68,7 +106,7 @@ def register_candidate(
     candidate_id: str,
     display_name: str,
     password: str,
-    registration_code: str = "",
+    client_key: str = "local",
 ) -> RegistrationResult:
     """Create a candidate and their login in one step.
 
@@ -79,14 +117,10 @@ def register_candidate(
     state = registration_state(repo_root)
     if not state["enabled"]:
         raise RegistrationError(
-            "Registration is closed. Ask an admin to create the account, or set "
-            f"{REGISTRATION_CODE_ENV} in .env to allow sign-ups."
+            "Sign-ups are currently closed. Please ask the administrator for an account."
         )
 
-    if state["code_required"]:
-        expected = os.getenv(REGISTRATION_CODE_ENV, "").strip()
-        if not registration_code or registration_code.strip() != expected:
-            raise RegistrationError("Invalid registration code.")
+    _rate_limit(client_key)
 
     candidate_id = (candidate_id or "").strip().lower()
     display_name = (display_name or "").strip()

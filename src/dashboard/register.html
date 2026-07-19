@@ -72,12 +72,6 @@
       <input id="pass" name="password" type="password" autocomplete="new-password" required>
       <div class="strength"><i id="bar"></i></div>
 
-      <div id="codeWrap" hidden>
-        <label for="code">Registration code</label>
-        <input id="code" name="code" autocomplete="off">
-        <p class="hint">Ask whoever runs this instance for the code.</p>
-      </div>
-
       <button type="submit" id="btn">Create account</button>
     </div>
 
@@ -104,7 +98,6 @@
       document.getElementById("closed").style.display = "block";
       return;
     }
-    if (s.code_required) document.getElementById("codeWrap").hidden = false;
     if (s.first_user){
       document.getElementById("subtitle").textContent = "first account · becomes admin";
       show("This is the first account on this instance, so it will be the administrator.", "info");
@@ -139,8 +132,7 @@
       body: JSON.stringify({
         full_name: document.getElementById("full").value,
         username: document.getElementById("user").value,
-        password: pass.value,
-        code: document.getElementById("code") ? document.getElementById("code").value : ""
+        password: pass.value
       })
     })
     .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
