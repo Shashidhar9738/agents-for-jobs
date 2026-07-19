@@ -27,7 +27,6 @@ $EnvFile    = Join-Path $Workspace '.env'
 $N8NHome    = Join-Path $env:LOCALAPPDATA 'AIJobAgent\n8n'
 $N8NBin     = Join-Path $N8NHome 'node_modules\.bin\n8n.cmd'
 $Marker     = Join-Path $N8NHome '.setup-complete'
-# UPDATED: Using n8n version 2.22.6 (current stable)
 $N8NVersion = '2.22.6'
 
 Set-Location $Workspace
@@ -39,30 +38,10 @@ function Write-Log {
         Out-File -FilePath $LogFile -Append -Encoding utf8
 }
 
-# Runs a native command, appends its combined output to the log, returns exit code.
-function Invoke-Logged {
-    param([string]$FilePath, [string[]]$Arguments, [string]$WorkingDirectory = $Workspace)
-    $p = Start-Process -FilePath $FilePath -ArgumentList $Arguments `
-        -WorkingDirectory $WorkingDirectory -NoNewWindow -Wait -PassThru `
-        -RedirectStandardOutput "$LogFile.out" -RedirectStandardError "$LogFile.err"
-    foreach ($f in @("$LogFile.out", "$LogFile.err")) {
-        if (Test-Path $f) {
-            Get-Content $f | Out-File -FilePath $LogFile -Append -Encoding utf8
-            Remove-Item $f -Force
-        }
-    }
-    return $p.ExitCode
-}
-
-if (-not (Test-Path $N8NHome)) {
-    New-Item -ItemType Directory -Path $N8NHome -Force | Out-Null
-}
-
 Write-Host '================================================' -ForegroundColor Cyan
 Write-Host ' AI Job Agent' -ForegroundColor Cyan
 Write-Host '================================================' -ForegroundColor Cyan
 Write-Host " Workspace    : $Workspace"
-Write-Host " n8n home     : $N8NHome"
 Write-Host " n8n version  : $N8NVersion" -ForegroundColor Yellow
 Write-Host '================================================' -ForegroundColor Cyan
 Write-Host ''
@@ -80,7 +59,6 @@ foreach ($line in (Get-Content $EnvFile)) {
     if ($line -notmatch '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') { continue }
     $name  = $Matches[1]
     $value = $Matches[2].Trim()
-    # Strip a single matching pair of surrounding quotes, if present.
     if ($value.Length -ge 2 -and
         (($value.StartsWith('"') -and $value.EndsWith('"')) -or
          ($value.StartsWith("'") -and $value.EndsWith("'")))) {
@@ -94,10 +72,8 @@ if (-not $env:N8N_HOST)          { $env:N8N_HOST = 'localhost' }
 if (-not $env:N8N_SECURE_COOKIE) { $env:N8N_SECURE_COOKIE = 'false' }
 $env:N8N_USER_FOLDER = $N8NHome
 
-# Build the URL once and use it everywhere
-$N8N_URL = "http://${env:N8N_HOST}:${env:N8N_PORT}"
+$N8N_URL = "${env:N8N_HOST}:${env:N8N_PORT}"
 
-# DEBUG: Show exactly what URL we're building
 Write-Host "[DEBUG] Built URL: '$N8N_URL'" -ForegroundColor Magenta
 Write-Host ""
 
@@ -127,13 +103,21 @@ function Find-Node {
 }
 
 $Node = Find-Node
-if (-not $Node) { Write-Host '[INFO] Node.js not found - will install during provisioning.' -ForegroundColor Yellow }
+if (-not $Node) { 
+    Write-Host '[ERROR] Node.js not found. Please install Node.js 20.x LTS.' -ForegroundColor Red
+    exit 1
+}
+
+# Check if n8n is installed globally
+$globalN8n = (Get-Command n8n -ErrorAction SilentlyContinue).Source
+if (-not $globalN8n) {
+    Write-Host '[INFO] n8n not found globally - will install during setup.' -ForegroundColor Yellow
+}
 
 if ($Mode -eq 'auto') {
     $Mode = 'start'
     if (-not (Test-Path $Marker)) { $Mode = 'setup' }
-    if (-not (Test-Path $N8NBin)) { $Mode = 'setup' }
-    if (-not $Node)               { $Mode = 'setup' }
+    if (-not $globalN8n) { $Mode = 'setup' }
 }
 
 Write-Host "[INFO] Mode: $Mode" -ForegroundColor Green
@@ -151,39 +135,6 @@ function Invoke-Provision {
         if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
     }
 
-    # --- Node
-    if (-not $script:Node) {
-        Write-Host '[STEP] Installing Node.js...' -ForegroundColor Yellow
-        # UPDATED: Node.js 20.x LTS is recommended for n8n 2.x
-        $nodeVersion   = '20.18.0'
-        $nodeInstaller = Join-Path $env:TEMP "node-v$nodeVersion-x64.msi"
-        $nodeUrl       = "https://nodejs.org/dist/v$nodeVersion/node-v$nodeVersion-x64.msi"
-
-        Write-Host "[INFO] Downloading Node.js $nodeVersion..." -ForegroundColor Cyan
-        try {
-            Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing -ErrorAction Stop
-        } catch {
-            Write-Log "[ERROR] Node.js download failed: $_" 'Red'
-            return $false
-        }
-
-        Write-Host '[INFO] Installing Node.js (this may take a moment)...' -ForegroundColor Cyan
-        $p = Start-Process msiexec.exe -ArgumentList "/i `"$nodeInstaller`" /quiet /norestart" -Wait -PassThru
-        if ($p.ExitCode -ne 0) {
-            Write-Log "[ERROR] Node.js installation failed (exit $($p.ExitCode))." 'Red'
-            return $false
-        }
-
-        $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-                    [Environment]::GetEnvironmentVariable('Path', 'User')
-        $script:Node = Find-Node
-        if (-not $script:Node) {
-            Write-Log '[ERROR] Node installed but not detectable. Open a new shell and re-run.' 'Red'
-            return $false
-        }
-    }
-    Write-Log "[INFO] Node: $($script:Node.Exe)" 'Green'
-
     # --- Python
     $pythonCmd = $null
     $pythonCandidates = @(
@@ -200,7 +151,6 @@ function Invoke-Provision {
             if (Test-Path $c) { $pythonCmd = $c; break }
         } else {
             $found = (Get-Command $c -ErrorAction SilentlyContinue).Source
-            # The Windows Store alias is a 0-byte stub that opens the Store; skip it.
             if ($found -and (Get-Item $found).Length -gt 0) { $pythonCmd = $found; break }
         }
     }
@@ -226,209 +176,100 @@ requests>=2.32.0
     }
 
     Write-Host '[STEP] Upgrading pip...' -ForegroundColor Yellow
-    Invoke-Logged $pythonCmd @('-m', 'pip', 'install', '--upgrade', 'pip') | Out-Null
+    $pipUpgrade = & $pythonCmd -m pip install --upgrade pip 2>&1
+    $pipUpgrade | Out-File -FilePath $LogFile -Append -Encoding utf8
 
     Write-Host '[STEP] Installing Python packages...' -ForegroundColor Yellow
-    if ((Invoke-Logged $pythonCmd @('-m', 'pip', 'install', '-r', $requirementsFile)) -ne 0) {
+    $pipInstall = & $pythonCmd -m pip install -r "$requirementsFile" 2>&1
+    $pipInstall | Out-File -FilePath $LogFile -Append -Encoding utf8
+    
+    if ($LASTEXITCODE -ne 0) {
         Write-Log '[ERROR] Python package install failed. Check setup.log' 'Red'
         return $false
     }
     Write-Log '[INFO] Python packages installed.' 'Green'
 
     Write-Host '[STEP] Downloading Playwright Chromium...' -ForegroundColor Yellow
-    if ((Invoke-Logged $pythonCmd @('-m', 'playwright', 'install', 'chromium')) -ne 0) {
-        Write-Log '[WARN] Playwright download failed - run manually: py -m playwright install chromium' 'Yellow'
-    }
+    $playwrightInstall = & $pythonCmd -m playwright install chromium 2>&1
+    $playwrightInstall | Out-File -FilePath $LogFile -Append -Encoding utf8
 
-    # --- n8n
-    Write-Host "[STEP] Installing n8n v$N8NVersion in user profile (no admin needed)..." -ForegroundColor Yellow
+    # --- n8n Installation (Global)
+    Write-Host ""
+    Write-Host "[STEP] Installing n8n $N8NVersion globally..." -ForegroundColor Yellow
+    
     $npm = $script:Node.Npm
-
-    # Reinstall when the binary is missing or the installed version is not the pinned one.
-    $needsReinstall = -not (Test-Path $N8NBin)
-    if (-not $needsReinstall) {
-        $installedPkg = Join-Path $N8NHome 'node_modules\n8n\package.json'
-        if (Test-Path $installedPkg) {
-            $installed = (Get-Content $installedPkg -Raw | ConvertFrom-Json).version
-            if ($installed -ne $N8NVersion) {
-                Write-Log "[INFO] Installed n8n is $installed, want $N8NVersion." 'Yellow'
-                $needsReinstall = $true
-            }
-        } else {
-            $needsReinstall = $true
-        }
+    
+    # Check if already installed globally
+    $existingN8n = (Get-Command n8n -ErrorAction SilentlyContinue).Source
+    if ($existingN8n) {
+        Write-Host "Removing existing global n8n..." -ForegroundColor Yellow
+        & $npm uninstall -g n8n 2>&1 | Out-File -FilePath $LogFile -Append -Encoding utf8
     }
-
-    # package.json goes too: a manifest left by an older pin (e.g. "n8n": "^1.50.0")
-    # makes npm resolve that range instead of $N8NVersion, so the upgrade never lands.
-    if ($needsReinstall) {
-        Write-Host '[WARN] Missing, broken, or wrong-version n8n detected. Reinstalling...' -ForegroundColor Yellow
-        foreach ($stale in @('node_modules', 'package-lock.json', 'package.json')) {
-            $p = Join-Path $N8NHome $stale
-            if (Test-Path $p) { Remove-Item -Recurse -Force $p }
-        }
-    }
-
-    # Bootstrap after the cleanup, so a just-deleted manifest is recreated empty.
-    if (-not (Test-Path (Join-Path $N8NHome 'package.json'))) {
-        if ((Invoke-Logged $npm @('init', '-y') $N8NHome) -ne 0) {
-            Write-Log '[ERROR] n8n bootstrap failed. Check setup.log' 'Red'
-            return $false
-        }
-    }
-
-    Write-Host '[INFO] Installing n8n (this may take a few minutes)...' -ForegroundColor Cyan
-    # UPDATED: Simplified flags for n8n 2.x
-    $npmArgs = @("n8n@$N8NVersion", '--legacy-peer-deps')
-    $code = Invoke-Logged $npm (@('install') + $npmArgs) $N8NHome
-    if ($code -ne 0) {
-        Write-Log '[WARN] Standard n8n install failed. Retrying with --ignore-scripts...' 'Yellow'
-        $code = Invoke-Logged $npm (@('install') + $npmArgs + '--ignore-scripts') $N8NHome
-    }
-    if ($code -ne 0) {
-        Write-Log '[WARN] npm install failed - will fall back to npx at launch.' 'Yellow'
-        $script:UseNpx = $true
-        return $true
-    }
-
-    # --- Verify sqlite3 native binding
-    Write-Host '[STEP] Verifying n8n installation...' -ForegroundColor Yellow
-    $sqlitePath = (Join-Path $N8NHome 'node_modules\sqlite3') -replace '\\', '/'
-    $probe      = "require('$sqlitePath'); console.log('ok')"
-
-    Invoke-Logged $script:Node.Exe @('-e', $probe) $N8NHome | Out-Null
-    $healthy = ($LASTEXITCODE -eq 0)
-
-    if (-not $healthy) {
-        Write-Log '[WARN] sqlite3 has no native binding - attempting rebuild.' 'Yellow'
-        $env:npm_config_ignore_scripts = 'false'
-        Invoke-Logged $npm @('rebuild', 'sqlite3') $N8NHome | Out-Null
-        Invoke-Logged $script:Node.Exe @('-e', $probe) $N8NHome | Out-Null
-        $healthy = ($LASTEXITCODE -eq 0)
-        if ($healthy) { Write-Log '[INFO] sqlite3 repaired.' 'Green' }
-    }
-
-    if (-not $healthy) {
-        Write-Log '[ERROR] n8n cannot load sqlite3 and the rebuild failed.' 'Red'
-        Write-Host '[ERROR] Usually this means node-gyp had to compile from source.' -ForegroundColor Red
-        Write-Host "[FIX]   Install 'Desktop development with C++' via Visual Studio Build" -ForegroundColor Red
-        Write-Host '[FIX]   Tools, then re-run: .\AI_JOB_AGENT.ps1 setup' -ForegroundColor Red
+    
+    Write-Host "Installing n8n $N8NVersion globally (this may take a few minutes)..." -ForegroundColor Cyan
+    $npmInstall = & $npm install -g "n8n@$N8NVersion" 2>&1
+    $npmInstall | Out-File -FilePath $LogFile -Append -Encoding utf8
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log '[ERROR] n8n global install failed. Check setup.log' 'Red'
         return $false
     }
 
-    Write-Log '[INFO] n8n installed and verified.' 'Green'
-    return $true
-}
+    # Verify installation
+    $installedVersion = & n8n --version 2>$null
+    if (-not $installedVersion) {
+        Write-Log '[ERROR] n8n installed but not found in PATH.' 'Red'
+        return $false
+    }
+    
+    $installedVersion = $installedVersion.Trim()
+    Write-Host "Installed Version : $installedVersion" -ForegroundColor Green
 
-# Function to open browser with proper URL
-function Open-Browser {
-    param([string]$Url)
-    
-    Write-Host "[DEBUG] Opening browser with URL: '$Url'" -ForegroundColor Magenta
-    
-    # Method 1: Try Start-Process with the URL as a string
-    try {
-        Start-Process $Url
-        Write-Host "[INFO] Browser opened with Start-Process" -ForegroundColor Green
-        return $true
-    } catch {
-        Write-Host "[WARN] Start-Process failed: $_" -ForegroundColor Yellow
+    if ($installedVersion -ne $N8NVersion) {
+        Write-Host ""
+        Write-Host "ERROR: Wrong version installed!" -ForegroundColor Red
+        Write-Host "Expected : $N8NVersion"
+        Write-Host "Actual   : $installedVersion"
+        return $false
     }
-    
-    # Method 2: Try with explorer.exe
-    try {
-        Start-Process "explorer.exe" $Url
-        Write-Host "[INFO] Browser opened with explorer.exe" -ForegroundColor Green
-        return $true
-    } catch {
-        Write-Host "[WARN] explorer.exe failed: $_" -ForegroundColor Yellow
-    }
-    
-    # Method 3: Try with cmd /c start
-    try {
-        Start-Process -FilePath "cmd.exe" -ArgumentList "/c start `"$Url`""
-        Write-Host "[INFO] Browser opened with cmd /c start" -ForegroundColor Green
-        return $true
-    } catch {
-        Write-Host "[WARN] cmd /c start failed: $_" -ForegroundColor Yellow
-    }
-    
-    Write-Host "[ERROR] All browser opening methods failed." -ForegroundColor Red
-    Write-Host "[INFO] Please manually open your browser and navigate to:" -ForegroundColor Yellow
-    Write-Host "      $Url" -ForegroundColor Green
-    return $false
+
+    Write-Log "[INFO] n8n $N8NVersion installed globally and verified." "Green"
+    return $true
 }
 
 # --------------------------- LAUNCH -----------------------------------------
 
 function Invoke-Launch {
-    # Prefer the pinned local install; only fall back to a PATH n8n, then npx.
-    $exe = $null
-    if (-not $script:UseNpx) {
-        $candidates = @(
-            $N8NBin,
-            (Join-Path $env:APPDATA 'npm\n8n.cmd'),
-            (Join-Path $Workspace 'node_modules\.bin\n8n.cmd')
-        )
-        foreach ($c in $candidates) {
-            if ($c -and (Test-Path $c)) { $exe = $c; break }
-        }
-        if (-not $exe) {
-            $onPath = (Get-Command n8n -ErrorAction SilentlyContinue).Source
-            if ($onPath) { $exe = $onPath }
-        }
+    # Check if n8n is available
+    $n8nCmd = (Get-Command n8n -ErrorAction SilentlyContinue).Source
+    if (-not $n8nCmd) {
+        Write-Host ""
+        Write-Host "[ERROR] n8n not found. Run setup first:" -ForegroundColor Red
+        Write-Host ".\AI_JOB_AGENT.ps1 setup" -ForegroundColor Green
+        exit 1
     }
 
-    Write-Host ''
-    if ($exe) {
-        Write-Host "[INFO] Starting n8n from: $exe" -ForegroundColor Cyan
-        Write-Host "[INFO] n8n version: $N8NVersion" -ForegroundColor Cyan
-    } else {
-        Write-Host '[WARN] n8n not found locally - falling back to npx.' -ForegroundColor Yellow
-        Write-Host "[WARN] Run '.\AI_JOB_AGENT.ps1 setup' for a proper install." -ForegroundColor Yellow
-    }
-
-    # Show the URL clearly
+    Write-Host ""
+    Write-Host "[INFO] Starting n8n..." -ForegroundColor Cyan
+    Write-Host "[INFO] Using: $n8nCmd" -ForegroundColor Cyan
+    
+    # Show version
+    Write-Host ""
+    Write-Host "Version:" -ForegroundColor Cyan
+    & n8n --version
+    
     Write-Host ""
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host " n8n URL: $N8N_URL" -ForegroundColor Green
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host "[INFO] N8N_SECURE_COOKIE=$($env:N8N_SECURE_COOKIE)" -ForegroundColor Cyan
+    Write-Host "[INFO] N8N_USER_FOLDER=$($env:N8N_USER_FOLDER)" -ForegroundColor Cyan
     Write-Host '[INFO] Press Ctrl+C to stop n8n' -ForegroundColor Yellow
     Write-Host ''
-
-    # Open browser after a short delay (wait for n8n to start)
-    Write-Host '[INFO] Starting n8n, will open browser in 5 seconds...' -ForegroundColor Cyan
     
-    # Start a background job to open the browser after n8n starts
-    $browserJob = Start-Job -ScriptBlock {
-        param($Url)
-        Start-Sleep -Seconds 5
-        try {
-            Start-Process $Url
-            Write-Host "[INFO] Browser opened automatically" -ForegroundColor Green
-        } catch {
-            Write-Host "[WARN] Could not open browser automatically" -ForegroundColor Yellow
-            Write-Host "[INFO] Please manually open: $Url" -ForegroundColor Green
-        }
-    } -ArgumentList $N8N_URL
-
-    # Actually start n8n (only once!)
-    if ($exe) {
-        & $exe start
-    } else {
-        if (-not $script:Node) {
-            Write-Host '[ERROR] No Node.js available - cannot launch via npx.' -ForegroundColor Red
-            exit 1
-        }
-        & $script:Node.Npx --yes "n8n@$N8NVersion" start
-    }
-
-    # Clean up the background job when n8n exits
-    if ($browserJob) {
-        Remove-Job $browserJob -Force -ErrorAction SilentlyContinue
-    }
-
+    # Launch n8n
+    n8n start
+    
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] n8n exited with code $LASTEXITCODE. Check setup.log" -ForegroundColor Red
         exit $LASTEXITCODE
@@ -437,10 +278,12 @@ function Invoke-Launch {
 
 # --------------------------- MAIN -------------------------------------------
 
-$UseNpx = $false
-
 if ($Mode -eq 'setup') {
-    if (-not (Invoke-Provision)) { exit 1 }
+    if (-not (Invoke-Provision)) { 
+        Write-Host ""
+        Write-Host "[ERROR] Setup failed." -ForegroundColor Red
+        exit 1 
+    }
 
     "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Setup completed" |
         Out-File -FilePath $Marker -Encoding utf8
@@ -452,8 +295,7 @@ if ($Mode -eq 'setup') {
     Write-Host '================================================' -ForegroundColor Cyan
     Write-Host " n8n URL    : $N8N_URL" -ForegroundColor Green
     Write-Host " n8n version: $N8NVersion" -ForegroundColor Green
-    Write-Host " n8n home   : $N8NHome"
-    Write-Host ' Import     : n8n-job-agent-workflow.json'
+    Write-Host " Import     : n8n-job-agent-workflow.json"
     Write-Host ''
     Write-Host ' n8n 2.x does not use N8N_BASIC_AUTH_* - on first launch the browser'
     Write-Host ' will ask you to create an owner account. Credentials are not printed.'
@@ -461,4 +303,5 @@ if ($Mode -eq 'setup') {
     Write-Host ''
 }
 
+# Always launch if we reach this point
 Invoke-Launch
