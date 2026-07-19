@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -9,6 +10,22 @@ from typing import Any, Dict, List
 
 from src.agent_core.ai_client import AIClient, AIClientError
 from src.agent_core.prompt_loader import PromptLoadError, collect_prompt_versions, load_prompt
+
+log = logging.getLogger(__name__)
+
+
+def _fall_back(reason: str) -> None:
+    """Say why AI extraction was abandoned.
+
+    Regex recovers little more than an email address, so a run that quietly
+    degrades produces a profile with no skills - and then WF02 scores every job
+    against nothing and finds no matches. The cause has to reach the operator.
+    """
+    log.warning(
+        "WF00 could not use the model (%s) - falling back to regex extraction, "
+        "which does not recover skills or job titles.",
+        reason,
+    )
 
 
 class ResumeIngestError(ValueError):
@@ -169,15 +186,18 @@ def _extract_profile_fields(
     """Structure the resume with the model, falling back to regex extraction."""
     try:
         client = AIClient.from_run_context(run_context)
-    except AIClientError:
+    except AIClientError as exc:
+        _fall_back(f"client unavailable: {exc}")
         return _regex_extract(resume_text), "regex", {}, {}
 
     if not client.available:
+        _fall_back("no provider credential configured")
         return _regex_extract(resume_text), "regex", {}, {}
 
     try:
         system_prompt = load_prompt(repo_root, "system")
-    except PromptLoadError:
+    except PromptLoadError as exc:
+        _fall_back(f"prompt missing: {exc}")
         return _regex_extract(resume_text), "regex", {}, {}
 
     user_prompt = "\n\n".join(
@@ -203,10 +223,12 @@ def _extract_profile_fields(
             purpose="wf00_resume_ingest",
             max_tokens=2048,
         )
-    except AIClientError:
+    except AIClientError as exc:
+        _fall_back(str(exc))
         return _regex_extract(resume_text), "regex", {}, {}
 
     if not response.data:
+        _fall_back("model reply was empty or not valid JSON")
         return _regex_extract(resume_text), "regex", {}, {}
 
     return (
@@ -215,6 +237,69 @@ def _extract_profile_fields(
         collect_prompt_versions(system_prompt),
         client.usage.as_metadata(),
     )
+
+
+_SKILLS_HEADINGS = (
+    "TECHNICAL SKILLS",
+    "TECHNICAL EXPERTISE",
+    "SKILLS & TOOLS",
+    "SKILLS",
+    "CORE COMPETENCIES",
+    "TECHNOLOGIES",
+)
+
+# A run of capitals on its own line is the next section starting.
+_SECTION_BREAK = re.compile(r"^[A-Z][A-Z &/'-]{3,}$")
+
+
+def _extract_skills(resume_text: str) -> List[str]:
+    """Pull skills out of a resume's skills section without a model.
+
+    PDF extraction wraps lines mid-phrase, so the section is rejoined before
+    splitting. Entries are usually written as 'Category: item, item', and the
+    category label itself is not a skill. Anything found here is still checked
+    against the resume text by _merge_profile, so over-collecting is safe -
+    under-collecting is not, because an empty skill list makes WF02 match
+    nothing.
+    """
+    upper = resume_text.upper()
+    start = -1
+    for heading in _SKILLS_HEADINGS:
+        found = upper.find(heading)
+        if found != -1:
+            start = found + len(heading)
+            break
+    if start == -1:
+        return []
+
+    lines = resume_text[start:].splitlines()
+    body: List[str] = []
+    for line in lines[1:] if lines and not lines[0].strip() else lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if _SECTION_BREAK.match(stripped) and stripped.upper() not in _SKILLS_HEADINGS:
+            break
+        body.append(stripped)
+    if not body:
+        return []
+
+    skills: List[str] = []
+    for chunk in " ".join(body).split(","):
+        item = chunk.strip()
+        # Drop a leading 'Category:' label, keeping the value after it.
+        if ":" in item:
+            item = item.split(":", 1)[1].strip()
+        # Trailing prose after an em/en dash is a description, not a skill.
+        item = re.split(r"[–—-]\s", item, maxsplit=1)[0].strip()
+        item = item.strip(" .;|")
+        if not item or len(item) > 40:
+            continue
+        if item.lower() in {"and", "etc", "others"}:
+            continue
+        if item not in skills:
+            skills.append(item)
+    return skills
 
 
 def _regex_extract(resume_text: str) -> Dict[str, Any]:
@@ -229,9 +314,17 @@ def _regex_extract(resume_text: str) -> Dict[str, Any]:
     if phone:
         extracted["phone"] = phone.group(0).strip()
 
-    years = re.search(r"(\d{1,2})\+?\s*years?\s+(?:of\s+)?experience", resume_text, re.IGNORECASE)
+    # Accept decimals: '4.5+ years' should not be read as 5.
+    years = re.search(
+        r"(\d{1,2}(?:\.\d)?)\+?\s*years?\s+(?:of\s+)?experience", resume_text, re.IGNORECASE
+    )
     if years:
-        extracted["experience_years"] = int(years.group(1))
+        value = float(years.group(1))
+        extracted["experience_years"] = int(value) if value.is_integer() else value
+
+    skills = _extract_skills(resume_text)
+    if skills:
+        extracted["skills"] = skills
 
     return extracted
 
@@ -244,7 +337,10 @@ def _merge_profile(
     """Merge extracted facts into the profile, dropping anything not in the resume."""
     merged = dict(existing)
     updated: List[str] = []
-    lowered_resume = resume_text.lower()
+    # PDF extraction wraps phrases across lines, so 'Selenium WebDriver' can
+    # arrive as 'Selenium\nWebDriver'. Collapse whitespace before the literal
+    # check, or genuine resume skills get rejected as fabrications.
+    lowered_resume = re.sub(r"\s+", " ", resume_text).lower()
 
     kept_skills: List[str] = []
     rejected_skills: List[str] = []

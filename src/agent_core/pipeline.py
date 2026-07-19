@@ -18,7 +18,7 @@ from src.agent_core.config_loader import build_runtime_context, persist_runtime_
 from src.agent_core.cover_letter_generator import generate_cover_letter_bundle
 from src.agent_core.dashboard import build_dashboard
 from src.agent_core.interview_prep import generate_interview_prep
-from src.agent_core.job_search import run_job_search
+from src.agent_core.job_search import run_job_search, slugify
 from src.agent_core.notifications import dispatch_notifications
 from src.agent_core.resume_generator import generate_resume_bundle
 
@@ -43,15 +43,61 @@ class FullPipelineResult:
     artifact_index_path: Path | None = None
 
 
+def _collect_live_feeds(run_context: Dict[str, Any], output_dir: Path) -> int:
+    """Fetch fresh listings from the enabled portals into the feed directory.
+
+    Without this the pipeline only ever rescores whatever JSON already sits in
+    data/job_feeds, which is why a run could report success while finding no
+    jobs at all.
+    """
+    from src.agent_core.portal_collectors import (
+        PortalCollectionError,
+        collect_portal,
+        save_portal_feed,
+    )
+
+    profile = run_context.get("candidate_profile") or {}
+    preferences = run_context.get("candidate_preferences") or {}
+    target_roles = [str(r) for r in (preferences.get("target_roles") or []) if str(r).strip()]
+    skills = [str(s) for s in (profile.get("skills") or []) if str(s).strip()]
+    keywords = (target_roles + skills)[:8]
+    if not keywords:
+        _progress("WF02", "No target roles or skills to search on - skipping live collection")
+        return 0
+    if not target_roles:
+        _progress("WF02", "No target_roles set - searching on skills alone, results will be broad")
+
+    locations = [str(loc) for loc in (preferences.get("locations") or ["Remote"])]
+    experience_years = int(profile.get("experience_years", 0) or 0)
+
+    total = 0
+    for portal in run_context.get("portal_list") or []:
+        try:
+            jobs = collect_portal(portal, keywords, locations, experience_years, 25)
+        except PortalCollectionError as exc:
+            _progress("WF02", f"{portal}: collection failed - {exc}")
+            continue
+        save_portal_feed(output_dir, portal, jobs)
+        _progress("WF02", f"{portal}: {len(jobs)} job(s) collected")
+        total += len(jobs)
+    return total
+
+
 def run_full_pipeline(
     repo_root: Path,
     candidate_id: str | None,
     job_feed_input_dir: Path,
+    collect_live: bool = False,
 ) -> FullPipelineResult:
     _progress("WF01", "Loading configuration and building run context")
     run_context = build_runtime_context(repo_root, candidate_override=candidate_id)
     run_context_path = persist_runtime_context(repo_root, run_context)
     _progress("WF01", f"Run context ready for candidate '{run_context.get('candidate_id', '')}'")
+
+    if collect_live:
+        _progress("WF02", "Collecting live listings from enabled portals")
+        found = _collect_live_feeds(run_context, job_feed_input_dir)
+        _progress("WF02", f"Live collection wrote {found} job(s) to the feed directory")
 
     _progress("WF02", "Searching and scoring jobs")
     wf02_result = run_job_search(repo_root, run_context, input_dir=job_feed_input_dir)
@@ -236,8 +282,6 @@ def _merge_provenance(
 
 
 def _job_artifact_dir(wf02_output_dir: Path, job: Dict[str, Any]) -> Path:
-    company = str(job.get("company", "unknown")).strip().lower()
-    role = str(job.get("role_title", "unknown")).strip().lower()
-    slug = "_".join(part for part in [company, role] if part)
-    slug = "".join(character if character.isalnum() else "_" for character in slug).strip("_") or "job"
-    return wf02_output_dir / "job_artifacts" / slug
+    # Must match how WF02 named the folder, so use its own slugifier.
+    folder = slugify(f"{job.get('company', 'unknown')}_{job.get('role_title', 'unknown')}")
+    return wf02_output_dir / "job_artifacts" / folder

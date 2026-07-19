@@ -81,12 +81,43 @@ def collect_linkedin_jobs(
         for card in cards:
             job = _parse_linkedin_card(card)
             if job:
+                # Scoring compares the candidate's skills against the job text.
+                # The result cards carry no description at all, so without this
+                # every job scores on its title alone and nothing clears a
+                # realistic threshold.
+                job["description"] = _fetch_linkedin_description(job["url"])
                 jobs.append(job)
             if len(jobs) >= max_results:
                 break
         params["start"] = int(params["start"]) + len(cards)
         time.sleep(1.5)
     return jobs[:max_results]
+
+
+def _fetch_linkedin_description(url: str) -> str:
+    """Read the job description off a public LinkedIn posting.
+
+    Best effort: a posting that cannot be fetched still yields a usable job
+    record, just a weaker match score, so failure returns an empty string
+    rather than aborting the whole collection.
+    """
+    if not url:
+        return ""
+    try:
+        response = _get_with_retry(url)
+    except PortalCollectionError:
+        return ""
+    soup = BeautifulSoup(response.text, "lxml")
+    node = soup.select_one("div.description__text") or soup.select_one(
+        "div.show-more-less-html__markup"
+    )
+    if node is None:
+        return ""
+    text = node.get_text(" ", strip=True)
+    # The guest page appends its expander controls to the text.
+    text = re.sub(r"\s*Show (?:more|less)\s*", " ", text).strip()
+    time.sleep(1.0)  # the search loop already paces itself; keep detail hits polite too
+    return text[:6000]
 
 
 def _parse_linkedin_card(card: Any) -> Optional[Dict[str, Any]]:

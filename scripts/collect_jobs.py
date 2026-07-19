@@ -9,8 +9,20 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.agent_core.config_loader import ConfigValidationError, build_runtime_context
-from src.agent_core.portal_collectors import PortalCollectionError, collect_portal, save_portal_feed
+# Must run before anything opens a socket: it loads .env and routes TLS through
+# the OS trust store. Without it every portal fetch fails certificate
+# verification behind a corporate proxy, and the collectors silently return
+# nothing at all.
+from src.agent_core.bootstrap import init_runtime
+
+init_runtime(REPO_ROOT)
+
+from src.agent_core.config_loader import ConfigValidationError, build_runtime_context  # noqa: E402
+from src.agent_core.portal_collectors import (  # noqa: E402
+    PortalCollectionError,
+    collect_portal,
+    save_portal_feed,
+)
 
 
 def main() -> int:
@@ -28,8 +40,20 @@ def main() -> int:
 
     profile = ctx["candidate_profile"]
     prefs = ctx["candidate_preferences"]
-    keywords = list(prefs.get("target_roles", [])) + list(profile.get("skills", []))
-    keywords = [k for k in keywords if k.strip()][:8]
+    target_roles = [r for r in prefs.get("target_roles", []) or [] if str(r).strip()]
+    skills = [s for s in profile.get("skills", []) or [] if str(s).strip()]
+    if not target_roles:
+        print(
+            "[WARN] No target_roles set for this candidate - searching on skills alone, "
+            "which returns far less relevant results. Set target_roles in "
+            f"config/candidates/{ctx.get('candidate_id')}/preferences.json."
+        )
+    if not skills:
+        print(
+            "[WARN] Profile has no skills - run WF00 resume ingestion first, or the "
+            "search has almost nothing to match on."
+        )
+    keywords = (target_roles + skills)[:8]
     locations = list(prefs.get("locations", ["Remote"]))
     experience_years = int(profile.get("experience_years", 0) or 0)
     portal_list = ctx.get("portal_list", [])

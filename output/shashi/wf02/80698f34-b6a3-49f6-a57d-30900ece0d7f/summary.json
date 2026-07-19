@@ -1,0 +1,18 @@
+{
+  "candidate_id": "shashi",
+  "run_id": "80698f34-b6a3-49f6-a57d-30900ece0d7f",
+  "input_dir": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\data\\job_feeds",
+  "output_dir": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\output\\shashi\\wf02\\80698f34-b6a3-49f6-a57d-30900ece0d7f",
+  "total_jobs": 12,
+  "apply_count": 0,
+  "review_count": 3,
+  "skip_count": 9,
+  "portals": [
+    "linkedin"
+  ],
+  "scoring_mode": "deterministic",
+  "prompt_versions": {},
+  "model_usage": {
+    "fallback_reason": "openrouter request failed with HTTP 402: {\"error\":{\"message\":\"Insufficient credits. This account never purchased credits. Make sure your key is on the correct account or org, and if so, purchase more at https://openrouter.ai/settings/credits\",\"code\":402}}"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "Shashidhar Yadala",
+  "email": "Shashi.Shashi727@gmail.com",
+  "phone": "",
+  "experience_years": 4.5,
+  "current_title": "",
+  "skills": [
+    "Selenium WebDriver",
+    "TestNG",
+    "Maven",
+    "Apache JMeter",
+    "stress",
+    "Functional",
+    "Regression",
+    "Integration",
+    "Smoke",
+    "Sanity",
+    "GUI",
+    "Mobile (Android)",
+    "UAT",
+    "Exploratory",
+    "SQL",
+    "JIRA",
+    "TFS",
+    "CI/CD pipelines",
+    "Linux",
+    "Mac"
+  ],
+  "locations": [
+    "Remote"
+  ],
+  "links": {
+    "linkedin": "",
+    "github": "",
+    "portfolio": ""
+  },
+  "profile_source": {
+    "derived_from": "master_resume",
+    "ingested_at": "2026-07-19T10:48:39.217046+00:00"
+  }
+}

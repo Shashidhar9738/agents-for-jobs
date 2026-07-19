@@ -22,10 +22,20 @@ def main() -> int:
         default="data/job_feeds",
         help="Directory containing portal job feed files for WF02",
     )
+    parser.add_argument(
+        "--collect",
+        action="store_true",
+        help="Fetch fresh listings from the enabled portals first, replacing the feed files",
+    )
     args = parser.parse_args()
 
     input_dir = (REPO_ROOT / args.input_dir).resolve() if not Path(args.input_dir).is_absolute() else Path(args.input_dir)
-    result = run_full_pipeline(REPO_ROOT, candidate_id=args.candidate, job_feed_input_dir=input_dir)
+    result = run_full_pipeline(
+        REPO_ROOT,
+        candidate_id=args.candidate,
+        job_feed_input_dir=input_dir,
+        collect_live=args.collect,
+    )
     print(f"[OK] Full pipeline completed. Processed jobs: {result.processed_jobs}")
     print(f"[INFO] Run context: {result.run_context_path}")
     print(f"[INFO] WF02 output: {result.wf02_output_dir}")

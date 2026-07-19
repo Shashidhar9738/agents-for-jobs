@@ -36,6 +36,7 @@ from src.agent_core.artifact_store import build_index  # noqa: E402
 from src.agent_core.config_loader import build_runtime_context  # noqa: E402
 from src.agent_core.auth import (  # noqa: E402
     ROLE_ADMIN,
+    AuthError,
     SessionStore,
     User,
     UserStore,
@@ -327,7 +328,16 @@ def _run_pipeline(candidate_id: str) -> None:
         # for the entire time the operator was watching it. Reading line by line
         # lets /api/run-status report each stage as it happens.
         process = subprocess.Popen(
-            [sys.executable, "-u", "scripts/run_full_pipeline.py", "--candidate", candidate_id],
+            [
+                sys.executable,
+                "-u",
+                "scripts/run_full_pipeline.py",
+                "--candidate",
+                candidate_id,
+                # The dashboard run is the "find me jobs" button, so it searches
+                # the portals rather than rescoring a stale feed.
+                "--collect",
+            ],
             cwd=str(REPO_ROOT),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -513,6 +523,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._send_json(_admin_overview())
             return
 
+        if route == "/api/admin/users":
+            if not user.is_admin:
+                self._send_json({"error": "forbidden"}, 403)
+                return
+            # Only ever the public projection - no hashes cross the wire.
+            self._send_json({"users": [u.as_public() for u in USERS.list_users()]})
+            return
+
         if route == "/api/run-status":
             self._send_json(_run_state)
             return
@@ -563,6 +581,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         # caller (n8n on this machine) without a token.
         if self._current_user() is None and not route.startswith("/api/stage/"):
             self._send_json({"error": "authentication required"}, 401)
+            return
+
+        if route == "/api/password/change":
+            self._handle_change_password()
+            return
+
+        if route == "/api/admin/reset-password":
+            self._handle_admin_reset_password()
             return
 
         if route == "/api/credentials":
@@ -771,6 +797,59 @@ class DashboardHandler(BaseHTTPRequestHandler):
         )
         self.end_headers()
         self.wfile.write(payload)
+
+    def _handle_change_password(self) -> None:
+        """Self-serve change. Always requires the current password, admins included."""
+        user = self._require_user()
+        if user is None:
+            return
+        body = self._read_json_body()
+        current = str(body.get("current_password", ""))
+        new = str(body.get("new_password", ""))
+        if str(body.get("confirm_password", new)) != new:
+            self._send_json({"error": "New passwords did not match"}, 400)
+            return
+        try:
+            USERS.change_password(user.username, current, new)
+        except AuthError as exc:
+            self._send_json({"error": str(exc)}, 400)
+            return
+
+        # Keep this browser signed in; boot every other session for the account.
+        revoked = SESSIONS.destroy_for_user(user.username, keep_token=self._session_token())
+        self._send_json({"ok": True, "other_sessions_ended": revoked})
+
+    def _handle_admin_reset_password(self) -> None:
+        """Admin override for a locked-out user. No old password needed."""
+        user = self._require_user()
+        if user is None:
+            return
+        if not user.is_admin:
+            self._send_json({"error": "forbidden"}, 403)
+            return
+
+        body = self._read_json_body()
+        target = str(body.get("username", "")).strip().lower()
+        new = str(body.get("new_password", ""))
+        if not target:
+            self._send_json({"error": "username is required"}, 400)
+            return
+        try:
+            USERS.set_password(target, new)
+        except AuthError as exc:
+            self._send_json({"error": str(exc)}, 400)
+            return
+
+        # The target must re-authenticate everywhere, including if that is the
+        # admin resetting their own account from another browser.
+        revoked = SESSIONS.destroy_for_user(target, keep_token=self._session_token())
+        # stderr + flush so the line survives an abrupt shutdown, matching log_message.
+        print(
+            f"[audit] admin '{user.username}' reset the password for '{target}'",
+            file=sys.stderr,
+            flush=True,
+        )
+        self._send_json({"ok": True, "username": target, "sessions_ended": revoked})
 
     def _handle_set_credential(self) -> None:
         user = self._require_user()

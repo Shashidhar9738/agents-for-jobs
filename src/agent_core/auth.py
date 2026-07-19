@@ -23,6 +23,18 @@ _SESSION_TTL_SECONDS = 8 * 60 * 60
 ROLE_ADMIN = "admin"
 ROLE_CANDIDATE = "candidate"
 
+MIN_PASSWORD_LENGTH = 8
+
+
+def validate_password(password: str) -> None:
+    """Raise AuthError if a proposed password fails policy.
+
+    Kept here rather than at the call sites so the CLI, the registration flow,
+    and the dashboard reset routes cannot drift apart on what they accept.
+    """
+    if len(password or "") < MIN_PASSWORD_LENGTH:
+        raise AuthError(f"password must be at least {MIN_PASSWORD_LENGTH} characters")
+
 
 @dataclass
 class User:
@@ -133,6 +145,7 @@ class UserStore:
         return User(username=username, role=role, candidate_id=candidate_id)
 
     def set_password(self, username: str, password: str) -> None:
+        validate_password(password)
         payload = self._read()
         for record in payload.get("users", []):
             if record["username"] == username.strip().lower():
@@ -140,6 +153,18 @@ class UserStore:
                 self._write(payload)
                 return
         raise AuthError(f"user '{username}' not found")
+
+    def change_password(self, username: str, current_password: str, new_password: str) -> None:
+        """Self-serve change: proves knowledge of the current password first.
+
+        Distinct from set_password, which is the admin override and deliberately
+        does not require the old password.
+        """
+        if self.authenticate(username, current_password) is None:
+            raise AuthError("current password is incorrect")
+        if current_password == new_password:
+            raise AuthError("new password must be different from the current one")
+        self.set_password(username, new_password)
 
     def authenticate(self, username: str, password: str) -> User | None:
         username = (username or "").strip().lower()
@@ -207,3 +232,18 @@ class SessionStore:
     def destroy(self, token: str | None) -> None:
         if token:
             self._sessions.pop(token, None)
+
+    def destroy_for_user(self, username: str, keep_token: str | None = None) -> int:
+        """Drop every session for a user, optionally sparing the caller's own.
+
+        Called after a password change so a stolen or stale session cannot
+        outlive the credential it was issued against.
+        """
+        doomed = [
+            token
+            for token, session in self._sessions.items()
+            if session["user"].username == username and token != keep_token
+        ]
+        for token in doomed:
+            self._sessions.pop(token, None)
+        return len(doomed)

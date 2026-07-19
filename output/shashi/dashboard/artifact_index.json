@@ -1,10 +1,280 @@
 {
-  "generated_at": "2026-07-19T09:57:30.789915+00:00",
+  "generated_at": "2026-07-19T11:00:37.343847+00:00",
   "candidate_id": "shashi",
-  "total_targets": 10,
+  "total_targets": 15,
   "interview_ready_count": 1,
-  "incomplete_count": 9,
+  "incomplete_count": 14,
   "targets": [
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer",
+      "folder_name": "Senior_QA_Automation_Engineer",
+      "company": "Morningstar",
+      "role": "Senior QA Automation Engineer",
+      "portal": "linkedin",
+      "job_url": "https://www.linkedin.com/jobs/view/senior-qa-automation-engineer-at-morningstar-4441233549",
+      "match_score": 76,
+      "decision": "Review",
+      "status": "Review",
+      "submitted_at": "2026-07-19T11:00:36.973622+00:00",
+      "model_usage": {
+        "stages": {},
+        "total_prompt_tokens": 0,
+        "total_completion_tokens": 0,
+        "total_tokens": 0,
+        "total_estimated_cost_usd": 0.0
+      },
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "JD.txt",
+          "kind": "source",
+          "size_bytes": 6001,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\JD.txt"
+        },
+        {
+          "name": "metadata.json",
+          "kind": "data",
+          "size_bytes": 590,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\metadata.json"
+        },
+        {
+          "name": "Resume.pdf",
+          "kind": "resume",
+          "size_bytes": 2148,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\Resume.pdf"
+        },
+        {
+          "name": "Resume.docx",
+          "kind": "resume",
+          "size_bytes": 37063,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\Resume.docx"
+        },
+        {
+          "name": "resume.json",
+          "kind": "data",
+          "size_bytes": 2455,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\resume.json"
+        },
+        {
+          "name": "CoverLetter.pdf",
+          "kind": "cover_letter",
+          "size_bytes": 2516,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\CoverLetter.pdf"
+        },
+        {
+          "name": "CoverLetter.docx",
+          "kind": "cover_letter",
+          "size_bytes": 37308,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\CoverLetter.docx"
+        },
+        {
+          "name": "Application.json",
+          "kind": "data",
+          "size_bytes": 1755,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\Application.json"
+        },
+        {
+          "name": "Screenshot.png",
+          "kind": "evidence",
+          "size_bytes": 18110,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\Screenshot.png"
+        },
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 379,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Morningstar\\Senior_QA_Automation_Engineer\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "InterviewQuestions.pdf",
+        "Answers.md"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z",
+      "folder_name": "Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z",
+      "company": "Astek",
+      "role": "Senior QA Automation Engineer - Praca zdalna K/M",
+      "portal": "linkedin",
+      "job_url": "https://pl.linkedin.com/jobs/view/senior-qa-automation-engineer-praca-zdalna-k-m-at-astek-4439619681",
+      "match_score": 76,
+      "decision": "Review",
+      "status": "Review",
+      "submitted_at": "2026-07-19T11:00:35.541534+00:00",
+      "model_usage": {
+        "stages": {},
+        "total_prompt_tokens": 0,
+        "total_completion_tokens": 0,
+        "total_tokens": 0,
+        "total_estimated_cost_usd": 0.0
+      },
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "JD.txt",
+          "kind": "source",
+          "size_bytes": 3888,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\JD.txt"
+        },
+        {
+          "name": "metadata.json",
+          "kind": "data",
+          "size_bytes": 662,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\metadata.json"
+        },
+        {
+          "name": "Resume.pdf",
+          "kind": "resume",
+          "size_bytes": 2160,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\Resume.pdf"
+        },
+        {
+          "name": "Resume.docx",
+          "kind": "resume",
+          "size_bytes": 37073,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\Resume.docx"
+        },
+        {
+          "name": "resume.json",
+          "kind": "data",
+          "size_bytes": 2457,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\resume.json"
+        },
+        {
+          "name": "CoverLetter.pdf",
+          "kind": "cover_letter",
+          "size_bytes": 2674,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\CoverLetter.pdf"
+        },
+        {
+          "name": "CoverLetter.docx",
+          "kind": "cover_letter",
+          "size_bytes": 37328,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\CoverLetter.docx"
+        },
+        {
+          "name": "Application.json",
+          "kind": "data",
+          "size_bytes": 1864,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\Application.json"
+        },
+        {
+          "name": "Screenshot.png",
+          "kind": "evidence",
+          "size_bytes": 19182,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\Screenshot.png"
+        },
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 378,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110033Z\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "InterviewQuestions.pdf",
+        "Answers.md"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z",
+      "folder_name": "Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z",
+      "company": "Astek",
+      "role": "Senior QA Automation Engineer - Praca zdalna K/M",
+      "portal": "linkedin",
+      "job_url": "https://pl.linkedin.com/jobs/view/senior-qa-automation-engineer-praca-zdalna-k-m-at-astek-4439619681",
+      "match_score": 76,
+      "decision": "Review",
+      "status": "Review",
+      "submitted_at": "2026-07-19T11:00:33.414967+00:00",
+      "model_usage": {
+        "stages": {},
+        "total_prompt_tokens": 0,
+        "total_completion_tokens": 0,
+        "total_tokens": 0,
+        "total_estimated_cost_usd": 0.0
+      },
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "JD.txt",
+          "kind": "source",
+          "size_bytes": 3888,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\JD.txt"
+        },
+        {
+          "name": "metadata.json",
+          "kind": "data",
+          "size_bytes": 662,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\metadata.json"
+        },
+        {
+          "name": "Resume.pdf",
+          "kind": "resume",
+          "size_bytes": 2160,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\Resume.pdf"
+        },
+        {
+          "name": "Resume.docx",
+          "kind": "resume",
+          "size_bytes": 37073,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\Resume.docx"
+        },
+        {
+          "name": "resume.json",
+          "kind": "data",
+          "size_bytes": 2457,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\resume.json"
+        },
+        {
+          "name": "CoverLetter.pdf",
+          "kind": "cover_letter",
+          "size_bytes": 2674,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\CoverLetter.pdf"
+        },
+        {
+          "name": "CoverLetter.docx",
+          "kind": "cover_letter",
+          "size_bytes": 37328,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\CoverLetter.docx"
+        },
+        {
+          "name": "Application.json",
+          "kind": "data",
+          "size_bytes": 1864,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\Application.json"
+        },
+        {
+          "name": "Screenshot.png",
+          "kind": "evidence",
+          "size_bytes": 19182,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\Screenshot.png"
+        },
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 378,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T110032Z\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "InterviewQuestions.pdf",
+        "Answers.md"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
     {
       "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Nimbus_Telecom\\Senior_SDET__20260719T095728Z",
       "folder_name": "Senior_SDET__20260719T095728Z",
@@ -908,6 +1178,84 @@
       "missing": [
         "InterviewQuestions.pdf",
         "Answers.md"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M",
+      "folder_name": "Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M",
+      "company": "Astek",
+      "role": "Senior QA Automation Engineer - Praca zdalna K M",
+      "portal": "",
+      "job_url": "",
+      "match_score": null,
+      "decision": "",
+      "status": "",
+      "submitted_at": "",
+      "model_usage": {},
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 88,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "JD.txt",
+        "metadata.json",
+        "Resume.pdf",
+        "Resume.docx",
+        "resume.json",
+        "CoverLetter.pdf",
+        "CoverLetter.docx",
+        "InterviewQuestions.pdf",
+        "Answers.md",
+        "Application.json",
+        "Screenshot.png"
+      ],
+      "is_complete": false,
+      "interview_ready": false,
+      "candidate_id": "shashi",
+      "profile_name": "QA_Automation_Engineer"
+    },
+    {
+      "directory": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T105917Z",
+      "folder_name": "Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T105917Z",
+      "company": "Astek",
+      "role": "Senior QA Automation Engineer - Praca zdalna K M",
+      "portal": "",
+      "job_url": "",
+      "match_score": null,
+      "decision": "",
+      "status": "",
+      "submitted_at": "",
+      "model_usage": {},
+      "prompt_versions": {},
+      "files": [
+        {
+          "name": "Logs.txt",
+          "kind": "log",
+          "size_bytes": 87,
+          "path": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\Profiles\\shashi\\QA_Automation_Engineer\\Astek\\Senior_QA_Automation_Engineer_-_Praca_zdalna_K_M__20260719T105917Z\\Logs.txt"
+        }
+      ],
+      "missing": [
+        "JD.txt",
+        "metadata.json",
+        "Resume.pdf",
+        "Resume.docx",
+        "resume.json",
+        "CoverLetter.pdf",
+        "CoverLetter.docx",
+        "InterviewQuestions.pdf",
+        "Answers.md",
+        "Application.json",
+        "Screenshot.png"
       ],
       "is_complete": false,
       "interview_ready": false,

@@ -366,6 +366,11 @@ def _first_value(record: Dict[str, Any], keys: Iterable[str]) -> str:
             joined = ", ".join(str(item).strip() for item in value if str(item).strip())
             if joined:
                 return joined
+            # An empty list means "this key said nothing", so try the next key.
+            # Falling through would stringify it to the literal "[]", which then
+            # normalises to a one-item skill list that matches no job and silently
+            # zeroes the entire skills score.
+            continue
         text = str(value).strip()
         if text:
             return text
@@ -738,6 +743,16 @@ def _persist_job_artifacts(base_output_dir: Path, job: Dict[str, Any]) -> None:
     metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
 
-def _slugify(value: str) -> str:
+def slugify(value: str) -> str:
+    """Canonical folder name for a job.
+
+    WF02 names its staging folders with this and the pipeline resolves them with
+    it, so the two must never drift - a second implementation that collapsed
+    punctuation differently silently produced a path that did not exist, and
+    WF03 then failed for want of JD.txt.
+    """
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", value.strip().lower()).strip("_")
     return slug or "job"
+
+
+_slugify = slugify

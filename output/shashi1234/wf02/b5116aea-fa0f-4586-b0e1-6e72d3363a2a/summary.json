@@ -1,0 +1,36 @@
+{
+  "candidate_id": "shashi1234",
+  "run_id": "b5116aea-fa0f-4586-b0e1-6e72d3363a2a",
+  "input_dir": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\data\\job_feeds",
+  "output_dir": "C:\\Users\\shashidhar.yadala\\Videos\\auto apply the jobs\\output\\shashi1234\\wf02\\b5116aea-fa0f-4586-b0e1-6e72d3363a2a",
+  "total_jobs": 1,
+  "apply_count": 0,
+  "review_count": 0,
+  "skip_count": 1,
+  "portals": [
+    "linkedin"
+  ],
+  "scoring_mode": "ai_blended",
+  "prompt_versions": {
+    "system": {
+      "file": "system_prompt.md",
+      "version": "1.0.0"
+    },
+    "job_matcher": {
+      "file": "job_search_prompt.md",
+      "version": "1.0.0"
+    }
+  },
+  "model_usage": {
+    "provider": "openrouter",
+    "model": "openai/gpt-4.1",
+    "calls": 1,
+    "prompt_tokens": 1232,
+    "completion_tokens": 67,
+    "total_tokens": 1299,
+    "estimated_cost_usd": 0.003,
+    "purposes": [
+      "wf02_job_matching"
+    ]
+  }
+}

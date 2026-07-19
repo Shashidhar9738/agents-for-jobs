@@ -15,6 +15,13 @@
       "preferences_path": "config/candidates/aishwarya/preferences.json",
       "resume_folder": "data/candidates/aishwarya/resume",
       "tracker_csv": "output/aishwarya/AppliedJobs.csv"
+    },
+    "shashi1234": {
+      "display_name": "Shashidhar Yadala",
+      "profile_path": "config/candidates/shashi1234/profile.json",
+      "preferences_path": "config/candidates/shashi1234/preferences.json",
+      "resume_folder": "data/candidates/shashi1234/resume",
+      "tracker_csv": "output/shashi1234/AppliedJobs.csv"
     }
   }
 }

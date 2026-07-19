@@ -108,6 +108,26 @@
   button.chip{cursor:pointer}
   button.chip:hover{border-color:var(--accent);color:var(--accent)}
 
+  /* Admin table - the markup referenced these classes before any of them existed. */
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--muted);font-weight:600;border-bottom:1px solid var(--line-strong)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover td{background:var(--surface-2)}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  /* Account & security */
+  .pw{position:relative}
+  .pw input{padding-right:60px}
+  .peek{position:absolute;top:7px;right:5px;padding:5px 8px;border-radius:4px;border:1px solid transparent;
+    background:transparent;color:var(--muted);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:600}
+  .peek:hover{color:var(--accent);background:var(--surface);border-color:var(--line)}
+  .note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+  .note strong{color:var(--ink-2);font-weight:600}
+  .rowform{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-top:14px}
+
   .empty{text-align:center;padding:36px 20px;color:var(--muted)}
   .empty h3{margin:0 0 6px;color:var(--ink-2);font-size:15px;font-weight:600}
   .empty p{margin:0;font-size:13.5px}
@@ -133,6 +153,7 @@
       <select id="candidate" aria-label="Candidate"></select>
       <button id="refresh">Refresh</button>
       <button id="run" class="primary">Run pipeline</button>
+      <button id="signout" title="Sign out">Sign out</button>
     </div>
   </div>
 
@@ -147,6 +168,58 @@
   <section class="card" id="adminCard" hidden>
     <h2>All candidates (admin)</h2>
     <div class="scroll"><table id="adminTable"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Account &amp; security</h2>
+    <form id="pwForm" class="rowform">
+      <div>
+        <label for="pwCurrent">Current password</label>
+        <div class="pw">
+          <input id="pwCurrent" type="password" autocomplete="current-password" required>
+          <button type="button" class="peek" data-target="pwCurrent" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <div>
+        <label for="pwNew">New password</label>
+        <div class="pw">
+          <input id="pwNew" type="password" autocomplete="new-password" required minlength="8">
+          <button type="button" class="peek" data-target="pwNew" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <div>
+        <label for="pwConfirm">Confirm new password</label>
+        <input id="pwConfirm" type="password" autocomplete="new-password" required minlength="8">
+      </div>
+      <button type="submit" class="primary">Change password</button>
+    </form>
+    <p class="note">
+      Minimum 8 characters. Saved passwords are hashed and <strong>cannot be displayed back</strong> —
+      anywhere in this dashboard or by any script. If one is lost, reset it here instead.
+    </p>
+  </section>
+
+  <section class="card" id="userAdminCard" hidden>
+    <h2>Reset a user's password (admin)</h2>
+    <div class="scroll"><table id="userTable"></table></div>
+    <form id="resetForm" class="rowform">
+      <div>
+        <label for="rUser">User</label>
+        <select id="rUser" style="width:100%"></select>
+      </div>
+      <div>
+        <label for="rPass">New password</label>
+        <div class="pw">
+          <input id="rPass" type="password" autocomplete="new-password" required minlength="8">
+          <button type="button" class="peek" data-target="rPass" aria-pressed="false">Show</button>
+        </div>
+      </div>
+      <button type="submit" class="primary">Reset password</button>
+    </form>
+    <p class="note">
+      Overrides the password without needing the old one, then signs that user out everywhere.
+      Tell them the new password over a channel you trust, and have them change it after signing in.
+    </p>
   </section>
 
   <section class="card">
@@ -531,6 +604,97 @@
     }).catch(function(){});
   }
 
+  // ---- account & security ----
+  // Delegated so toggles added to the DOM later still work.
+  document.addEventListener("click", function(ev){
+    var btn = ev.target.closest && ev.target.closest(".peek");
+    if (!btn || !btn.dataset.target) return;
+    var field = document.getElementById(btn.dataset.target);
+    if (!field) return;
+    var shown = field.type === "text";
+    field.type = shown ? "password" : "text";
+    btn.textContent = shown ? "Show" : "Hide";
+    btn.setAttribute("aria-pressed", String(!shown));
+    field.focus();
+  });
+
+  document.getElementById("pwForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var btn = this.querySelector("button[type=submit]");
+    var next = document.getElementById("pwNew").value;
+    if (next !== document.getElementById("pwConfirm").value){
+      toast("New passwords do not match", true);
+      return;
+    }
+    btn.disabled = true; btn.textContent = "Changing…";
+    fetch("/api/password/change", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        current_password: document.getElementById("pwCurrent").value,
+        new_password: next,
+        confirm_password: document.getElementById("pwConfirm").value
+      })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+    .then(function(res){
+      btn.disabled = false; btn.textContent = "Change password";
+      if (!res.ok){ toast(res.body.error || "Could not change password", true); return; }
+      document.getElementById("pwForm").reset();
+      var ended = res.body.other_sessions_ended;
+      toast("Password changed" + (ended ? " · " + ended + " other session(s) signed out" : ""));
+    })
+    .catch(function(e){
+      btn.disabled = false; btn.textContent = "Change password";
+      toast("Could not change password: " + e.message, true);
+    });
+  });
+
+  function loadUsers(){
+    fetch("/api/admin/users").then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      if (!d) return;
+      document.getElementById("userAdminCard").hidden = false;
+      var users = d.users || [];
+      document.getElementById("userTable").innerHTML =
+        "<thead><tr><th>Username</th><th>Role</th><th>Candidate</th></tr></thead><tbody>" +
+        users.map(function(u){
+          return "<tr><td>" + esc(u.username) + "</td><td>" + esc(u.role) +
+            "</td><td>" + esc(u.candidate_id || "—") + "</td></tr>";
+        }).join("") + "</tbody>";
+      document.getElementById("rUser").innerHTML = users.map(function(u){
+        return '<option value="' + esc(u.username) + '">' + esc(u.username) + "</option>";
+      }).join("");
+    }).catch(function(){});
+  }
+
+  document.getElementById("resetForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var target = document.getElementById("rUser").value;
+    if (!confirm("Reset the password for '" + target + "'? They will be signed out everywhere.")) return;
+    var btn = this.querySelector("button[type=submit]");
+    btn.disabled = true; btn.textContent = "Resetting…";
+    fetch("/api/admin/reset-password", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ username: target, new_password: document.getElementById("rPass").value })
+    })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, body:j }; }); })
+    .then(function(res){
+      btn.disabled = false; btn.textContent = "Reset password";
+      if (!res.ok){ toast(res.body.error || "Could not reset", true); return; }
+      document.getElementById("rPass").value = "";
+      toast("Password reset for " + res.body.username);
+    })
+    .catch(function(e){
+      btn.disabled = false; btn.textContent = "Reset password";
+      toast("Could not reset: " + e.message, true);
+    });
+  });
+
+  document.getElementById("signout").addEventListener("click", function(){
+    fetch("/api/logout", { method:"POST" })
+      .then(function(){ location.href = "/login"; })
+      .catch(function(){ location.href = "/login"; });
+  });
+
   document.getElementById("refresh").addEventListener("click", function(){ load(); loadCreds(); });
   candidateSel.addEventListener("change", function(){ load(); loadCreds(); });
 
@@ -545,7 +709,7 @@
     if (d.user){
       document.querySelector(".brand span").textContent =
         d.user.role === "admin" ? "signed in as " + d.user.username + " · admin" : "candidate: " + d.user.username;
-      if (d.user.role === "admin") loadAdmin();
+      if (d.user.role === "admin"){ loadAdmin(); loadUsers(); }
     }
     load();
     loadCreds();

@@ -49,6 +49,12 @@
   a:hover{text-decoration:underline}
   .closed{display:none;font-size:13px;color:var(--ink-2)}
   .strength{height:3px;border-radius:2px;background:var(--line);margin:0 0 14px;overflow:hidden}
+  .pw{position:relative}
+  .pw input{padding-right:62px}
+  .peek{position:absolute;top:9px;right:6px;width:auto;margin:0;padding:5px 9px;border-radius:4px;
+    border:1px solid transparent;background:transparent;color:var(--muted);
+    font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+  .peek:hover{color:var(--accent);background:var(--surface-2);border-color:var(--line)}
   .strength i{display:block;height:100%;width:0;background:var(--review);transition:width .2s,background .2s}
 </style>
 </head>
@@ -69,7 +75,10 @@
       <p class="hint">Lowercase letters, digits, - or _. This names your folders.</p>
 
       <label for="pass">Password</label>
-      <input id="pass" name="password" type="password" autocomplete="new-password" required>
+      <div class="pw">
+        <input id="pass" name="password" type="password" autocomplete="new-password" required>
+        <button type="button" class="peek" id="peek" aria-controls="pass" aria-pressed="false">Show</button>
+      </div>
       <div class="strength"><i id="bar"></i></div>
 
       <button type="submit" id="btn">Create account</button>
@@ -91,6 +100,15 @@
   var bar = document.getElementById("bar");
 
   function show(text, kind){ msg.textContent = text; msg.className = "msg " + kind; }
+
+  var peek = document.getElementById("peek");
+  peek.addEventListener("click", function(){
+    var shown = pass.type === "text";
+    pass.type = shown ? "password" : "text";
+    peek.textContent = shown ? "Show" : "Hide";
+    peek.setAttribute("aria-pressed", String(!shown));
+    pass.focus();
+  });
 
   fetch("/api/registration-state").then(function(r){ return r.json(); }).then(function(s){
     if (!s.enabled){

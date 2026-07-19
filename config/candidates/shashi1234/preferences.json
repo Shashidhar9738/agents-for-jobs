@@ -1,0 +1,18 @@
+{
+  "minimum_match": 70,
+  "target_roles": [],
+  "locations": [
+    "Remote"
+  ],
+  "work_modes": [
+    "Remote",
+    "Hybrid"
+  ],
+  "required_keywords": [],
+  "preferred_keywords": [],
+  "exclude_keywords": [
+    "intern",
+    "unpaid"
+  ],
+  "auto_apply": false
+}

@@ -1,0 +1,13 @@
+# Dashboard - shashi1234
+- Jobs found: 2
+- Applied: 0
+- Prepared: 0
+- Review: 0
+- Pending: 0
+- Resume used: 0
+- AI provider/model: openrouter / openai/gpt-4.1
+- Tokens used: 2,591
+- Estimated cost: $0.0059
+- Conversion rate: 0.0%
+- Interview calls: 0
+- Companies: None
