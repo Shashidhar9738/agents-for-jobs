@@ -48,7 +48,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8800/api/stage/wf02",
+        "url": "http://127.0.0.1:8800/api/stage/wf02",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

@@ -247,11 +247,23 @@ _SUMMARY_JS = """
 const stages = ['wf00','wf01','wf02','wf03','wf04','wf05','wf06','wf07','wf08'];
 const summary = [];
 
+// An error may arrive as a string, or as an object from the HTTP node. Flatten
+// both to readable text - "[object Object]" tells nobody anything.
+function describe(err) {
+  if (!err) return '';
+  if (typeof err === 'string') return err.slice(0, 200);
+  return String(err.message || err.error || JSON.stringify(err)).slice(0, 200);
+}
+
 for (const stage of stages) {
   let entry = { stage, ok: false, detail: 'not run' };
   try {
     const out = $('Run ' + stage.toUpperCase()).first().json;
-    entry = { stage, ok: out.ok === true, detail: out.error ? String(out.error).slice(0, 160) : (out.label || '') };
+    entry = {
+      stage,
+      ok: out.ok === true,
+      detail: out.ok === true ? (out.label || 'ok') : describe(out.error)
+    };
   } catch (e) {
     // Node did not execute in this run; leave the default entry.
   }
@@ -273,7 +285,10 @@ return [{ json: {
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the WF01-WF08 workflow set in n8n.")
     parser.add_argument("--n8n", default="http://192.168.29.100:5678")
-    parser.add_argument("--pipeline", default="http://localhost:8800",
+    # Deliberately the IPv4 literal, not "localhost": Node resolves localhost to
+    # the IPv6 ::1 first on Windows, while the pipeline binds IPv4 only, so
+    # "localhost" produces ECONNREFUSED ::1:8800 even when the service is up.
+    parser.add_argument("--pipeline", default="http://127.0.0.1:8800",
                         help="Where the Python service is reachable FROM n8n")
     parser.add_argument("--activate", action="store_true")
     parser.add_argument("--export-only", action="store_true",
